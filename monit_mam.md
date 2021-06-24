@@ -201,7 +201,6 @@ ggplot(local, aes(x = S, y = H)) +
 #ggsave("2.Diver_impacto.png",width = 15, height = 8, dpi = 600)
 
 ### Cluster
-#cluster
 pacman::p_load("ade4")
 local<-reshape2::dcast(planilhatotal, Impacto ~ Espécie, value.var = "Abundancia", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
@@ -263,7 +262,6 @@ ggplot(local, aes(x = S, y = H)) +
 #ggsave("2.Diver_uso.png",width = 15, height = 8, dpi = 600)
 
 ### Cluster
-#cluster
 pacman::p_load("ade4")
 local<-reshape2::dcast(planilhatotal, Impacto ~ Espécie, value.var = "Abundancia", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
@@ -325,63 +323,86 @@ ggplot(local, aes(x = S, y = H)) +
 #ggsave("2.Diver_localidade.png",width = 15, height = 8, dpi = 600)
 
 ### Cluster
-#cluster
 pacman::p_load("ade4")
-local<-reshape2::dcast(planilhatotal, Impacto ~ Espécie, value.var = "Abundancia", fun.aggregate = sum)
+local<-reshape2::dcast(p2, Localidade ~ Espécie, value.var = "Abundancia", fun.aggregate = sum) 
 local=data.frame(local, row.names=1)
-d <- dist.binary(local, method = 1, diag = FALSE, upper = FALSE) #method 1 is Jaccard index (1901) S3 coefficient of Gower & Legendre
+d <- dist.binary(local, method = 1, diag = FALSE, upper = FALSE) 
+#method 1 is Jaccard index (1901) S3 coefficient of Gower & Legendre
 hc <- hclust(d)               # apply hierarchical clustering 
 plot(hc, labels=local$ID)    # plot the dendrogram
 
 
 # PCA
-#riqueza
-local<-reshape2::dcast(planilhatotal, Vegetação ~ Classe) #sem abudância para ser a riqueza/diversidade
-local <- data.frame(local, row.names = 1)
+## Impacto
+### Pacotes
+pacman::p_load(psych) library("devtools") library("ggbiplot") #install_github("vqv/ggbiplot")
 
-grupo<-reshape2::dcast(planilhatotal, Vegetação ~ Classe, value.var = "Abundancia", fun.aggregate = sum)
+### Riqueza
+#### Tabelas
+local<-reshape2::dcast(p2, Impacto ~ Ordem) #sem abudância para ser a riqueza/diversidade
+names(local)[grep('Impacto', names(local))] <- 'Fator'
+impacto <- data.frame(local)
+local<-reshape2::dcast(p2, Vegetação ~ Ordem) #sem abudância para ser a riqueza/diversidade
+names(local)[grep('Vegetação', names(local))] <- 'Fator'
+uso <- data.frame(local)
+local<-reshape2::dcast(p2, Localidade ~ Ordem) #sem abudância para ser a riqueza/diversidade
+names(local)[grep('Localidade', names(local))] <- 'Fator'
+local <- data.frame(local)
+localt<-rbind(impacto, uso, local)
+grupo<-localt
+#grupo<-reshape2::dcast(p2, Impacto ~ Ordem, value.var = "Abundancia", fun.aggregate = sum)
 #grupo2<-reshape2::dcast(planilhatotal, País ~ Gênero, value.var = "Pontos", fun.aggregate = sum)
 
-wine.pca <- prcomp(local, scale. = TRUE)
+#### Gráficos
+wine.pca <- prcomp(localt, scale. = TRUE)
 ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
-         #groups = grupo$Vegetação, 
+         #groups = grupo$Fator, 
          ellipse = TRUE, circle = TRUE) +
-  geom_label_repel(aes(label = grupo$Vegetação), size=4, alpha= 1, #funciona no zoom
+  geom_label_repel(aes(label = grupo$Fator), size=4, alpha= 1, 
                    box.padding   = 0.35, 
                    point.padding = 0.75,
                    segment.color = 'grey50') +
   scale_color_discrete(name = '') +
   theme(legend.direction = 'horizontal', legend.position = 'top') +
   theme_classic()
+#ggsave("3.PCA_riqueza.png",width = 6, height = 5, dpi = 600)
+summary(prcomp(localt, scale = TRUE))
+biplot(prcomp(localt, scale = TRUE))
 
-#ggsave("ggbiplotvegriqz.png",width = 6, height = 5, dpi = 600)
+### Abundancia
+#### Tabelas
+local<-reshape2::dcast(p2, Impacto ~ Ordem, value.var = "Abundancia", fun.aggregate = sum)
+names(local)[grep('Impacto', names(local))] <- 'Fator'
+impacto <- data.frame(local)
+local<-reshape2::dcast(p2, Vegetação ~ Ordem, value.var = "Abundancia", fun.aggregate = sum) 
+names(local)[grep('Vegetação', names(local))] <- 'Fator'
+uso <- data.frame(local)
+local<-reshape2::dcast(p2, Localidade ~ Ordem, value.var = "Abundancia", fun.aggregate = sum) 
+names(local)[grep('Localidade', names(local))] <- 'Fator'
+local <- data.frame(local)
 
-summary(prcomp(local, scale = TRUE))
-biplot(prcomp(local, scale = TRUE))
-
-#abundancia
-local<-reshape2::dcast(planilhatotal, Vegetação ~ Classe, value.var = "Abundancia", fun.aggregate = sum) #sem abudância para ser a riqueza/diversidade
-local <- data.frame(local, row.names = 1)
-
-grupo<-reshape2::dcast(planilhatotal, Vegetação ~ Classe, value.var = "Abundancia", fun.aggregate = sum)
+localt<-rbind(impacto, uso, local)
+grupo<-localt
+#grupo<-reshape2::dcast(p2, Impacto ~ Ordem, value.var = "Abundancia", fun.aggregate = sum)
 #grupo2<-reshape2::dcast(planilhatotal, País ~ Gênero, value.var = "Pontos", fun.aggregate = sum)
 
-wine.pca <- prcomp(local, scale. = TRUE)
+#### Gráficos
+wine.pca <- prcomp(localt, scale. = TRUE)
 ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
-         #groups = grupo$Vegetação, 
+         #groups = grupo$Fator, 
          ellipse = TRUE, circle = TRUE) +
-  geom_label_repel(aes(label = grupo$Vegetação), size=4, alpha= 1, #funciona no zoom
+  geom_label_repel(aes(label = grupo$Fator), size=4, alpha= 1, 
                    box.padding   = 0.35, 
                    point.padding = 0.75,
                    segment.color = 'grey50') +
   scale_color_discrete(name = '') +
   theme(legend.direction = 'horizontal', legend.position = 'top') +
   theme_classic()
+#ggsave("3.PCA_abundancia.png",width = 6, height = 5, dpi = 600)
+summary(prcomp(localt, scale = TRUE))
+biplot(prcomp(localt, scale = TRUE))
 
-#ggsave("ggbiplotvegrabud.png",width = 6, height = 5, dpi = 600)
 
-summary(prcomp(local, scale = TRUE))
-biplot(prcomp(local, scale = TRUE))
 
 
 #correlaçao família/vegetação
