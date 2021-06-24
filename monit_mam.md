@@ -256,7 +256,7 @@ ggplot(local, aes(x = S, y = H)) +
   geom_text(aes(label = S), size=4, alpha= 1) +
   #geom_boxplot() +
   ggtitle("Diversidade da mastofauna para o uso e ocupação do solo") +
-  xlab("Uso e ocupação do solo") +
+  xlab("Riqueza") +
   ylab("Diversidade de mamíferos") + 
   theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14))+
   theme_classic()
@@ -272,6 +272,66 @@ hc <- hclust(d)               # apply hierarchical clustering
 plot(hc, labels=local$ID)    # plot the dendrogram
 
 
+## UC
+##### Tabela
+local<-reshape2::dcast(p2, Localidade ~ Espécie, value.var = "Abundancia", fun.aggregate = sum)
+local=data.frame(local, row.names=1)
+
+##### Índices de diversidade
+##### Abundância
+abund<-rowSums(local) #abunância por faixa
+abund
+###### Diversidade de Shanon
+H <- diversity(local)
+H #shannon
+###### Dominancia de Simpson (mede a probabilidade de 2 (dois) individuos, selecionados ao acaso na amostra, pertencer a mesma especie)
+simp <- diversity(local, "simpson")
+simp #simpson
+###### Inverso do Simpson
+invsimp <- diversity(local, "inv")
+invsimp 
+###### Unbiased Simpson (Hurlbert 1971, eq. 5) with rarefy:
+unbias.simp <- rarefy(local, 2) - 1
+unbias.simp
+###### Alphade Fisher
+alpha <- fisher.alpha(local)
+alpha
+##Plot all
+#pairs(cbind(H, simp, invsimp, unbias.simp, alpha), pch="+", col="blue")
+###### Riqueza
+S <- specnumber(local) ## rowSums(BCI > 0) does the same...
+S
+##### Equabilidade de Pielou (J):
+J <- H/log(S)
+J
+
+### Gráfico
+local<-reshape2::dcast(p2, Localidade ~ Espécie, value.var = "Abundancia", fun.aggregate = sum) 
+local<-data.frame(local, H, simp, S, J, abund)
+ggplot(local, aes(x = S, y = H)) + 
+  geom_point(aes(size=abund, colour = Localidade), alpha = 0.65)+ #size=abund
+  scale_size(range = c(.1, 18), name = "Abundância de registros") +
+  geom_label_repel(aes(label = Localidade), size=4, alpha= 1, #funciona no zoom
+                   box.padding   = 0.35, 
+                   point.padding = 0.75,
+                   segment.color = 'grey50') +
+  geom_text(aes(label = S), size=4, alpha= 1) +
+  #geom_boxplot() +
+  ggtitle("Diversidade da mastofauna para as localidades") +
+  xlab("Localidades") +
+  ylab("Riqueza") + 
+  theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14))+
+  theme_classic()
+#ggsave("2.Diver_localidade.png",width = 15, height = 8, dpi = 600)
+
+### Cluster
+#cluster
+pacman::p_load("ade4")
+local<-reshape2::dcast(planilhatotal, Impacto ~ Espécie, value.var = "Abundancia", fun.aggregate = sum)
+local=data.frame(local, row.names=1)
+d <- dist.binary(local, method = 1, diag = FALSE, upper = FALSE) #method 1 is Jaccard index (1901) S3 coefficient of Gower & Legendre
+hc <- hclust(d)               # apply hierarchical clustering 
+plot(hc, labels=local$ID)    # plot the dendrogram
 
 
 # PCA
