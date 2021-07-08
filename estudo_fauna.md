@@ -138,16 +138,16 @@ pool1<-specpool(faixa)
 pool1
 
 # Classe
-## Avifauna
+## Avifauna / Herpetofauna / Mastofauna
 #### Selecionar dados
-p2 <- subset(planilhatotal, Grupo == "Avifauna") 
+p2 <- subset(planilhatotal, Grupo == "Mastofauna") 
 p2 <- subset(p2, Dados == "Primários") 
 p2 <- subset(p2, Origem == "Nativo") 
 
 ### Acumulação
 #### Acumulação de Discos
 ##### Riqueza
-acum<-reshape2::dcast(p2, Data ~ Espécie) #, value.var = "Abundancia", fun.aggregate = sum)
+acum<-reshape2::dcast(p2, Dia ~ Espécie) #, value.var = "Abundancia", fun.aggregate = sum)
 acum=data.frame(acum, row.names=1)
 spAbund<-rowSums(acum) #abunância por espécie
 spAbund
@@ -175,7 +175,7 @@ sp4<-specaccum(acum,method="collector")
 ##### Rarefação Gráficos
 ###### Gráficos juntos
 #par(mgp=c(1,1,0)) #exportar a imagem
-#png(filename="/home/user/Área de Trabalho/Serviços/ES - Baixo Guandu/2021_06_30_granitos_itaguacu/R/1.Acumulaves.png",width=800,height=600) #local e tmamanho
+#png(filename="/home/user/Área de Trabalho/Serviços/ES - Baixo Guandu/2021_06_30_granitos_itaguacu/R/1.Acumulmast.png",width=800,height=600) #local e tmamanho
 par(mfrow=c(2,2)) 
 plot(sp1, ci.type="poly", col="black", lwd=2, ci.lty=0, ci.col="lightblue",xlab="Amostras",ylab="Rarefação")
 plot(sp2, ci.type="poly", col="black", lwd=2, ci.lty=0, ci.col="lightgrey",xlab="Amostras",ylab="Riqueza Esperada")
@@ -202,6 +202,7 @@ ggplot(a, aes(x = Data, y = sp4.richness)) +
   scale_size(range = c(.1, 24), name="Abundância de registros") +
   #geom_text(aes(label = a$sp4.richness),col = 'black',size = 5) +
   scale_x_continuous(breaks = 1:5) +
+  scale_y_continuous(breaks = 5:7) +
   ggtitle("Curva do coletor") +
   xlab("Dias") +
   ylab("Riqueza") + 
@@ -264,11 +265,59 @@ ggplot(acum, aes(x = S, y = Família)) +
   ylab("Família") + 
   theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14))+
   theme_classic()
-#ggsave("Famíliaave.png",width = 9, height = 7, dpi = 600)
+#ggsave("Famíliamast.png",width = 9, height = 7, dpi = 600)
 
+### Registro
+##### Tabela
+local<-reshape2::dcast(p2, Registro ~ Espécie, value.var = "Abundancia", fun.aggregate = sum)
+local=data.frame(local, row.names=1)
 
+##### Índices de diversidade
+##### Abundância
+abund<-rowSums(local) #abunância por faixa
+abund
+###### Diversidade de Shanon
+H <- diversity(local)
+H #shannon
+###### Dominancia de Simpson (mede a probabilidade de 2 (dois) individuos, selecionados ao acaso na amostra, pertencer a mesma especie)
+simp <- diversity(local, "simpson")
+simp #simpson
+###### Inverso do Simpson
+invsimp <- diversity(local, "inv")
+invsimp 
+###### Unbiased Simpson (Hurlbert 1971, eq. 5) with rarefy:
+unbias.simp <- rarefy(local, 2) - 1
+unbias.simp
+###### Alphade Fisher
+alpha <- fisher.alpha(local)
+alpha
+###### Riqueza
+S <- specnumber(local) ## rowSums(BCI > 0) does the same...
+S
+##### Equabilidade de Pielou (J):
+J <- H/log(S)
+J
+#Plot all
+#pairs(cbind(H, simp, invsimp, unbias.simp, alpha), pch="+", col="blue")
 
+### Gráfico
+local<-reshape2::dcast(p2, Registro ~ Espécie, value.var = "Abundancia", fun.aggregate = sum) local<-data.frame(local, H, simp, S, J, abund)
 
+ggplot(local, aes(x = S, y = H)) + 
+  geom_point(aes(size=abund, colour = Registro), alpha = 0.65)+ #size=abund
+  scale_size(range = c(.1, 18), name = "Abundância de registros") +
+  geom_label_repel(aes(label = Registro), size=4, alpha= 1, #funciona no zoom
+                   box.padding   = 0.35, 
+                   point.padding = 0.75,
+                   segment.color = 'grey50') +
+  geom_text(aes(label = S), size=4, alpha= 1) +
+  #geom_boxplot() +
+  ggtitle("Diversidade da mastofauna nas áreas de influência") +
+  xlab("Tipo de registro") +
+  ylab("Diversidade") + 
+  theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14))+
+  theme_classic()
+#ggsave("1.registro_herp.png",width = 15, height = 8, dpi = 600)
 
 
 
