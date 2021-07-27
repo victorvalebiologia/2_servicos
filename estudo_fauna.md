@@ -1,101 +1,84 @@
-# INICIAR
-## Música -> distribuição dos dados
-#upgride de pacotes 'update.packages(repos='http://cran.rstudio.com/ ', ask=FALSE, checkBuilt=TRUE)'
+## Apresentação
+Repositório para trelatório técnicos de estudo de fauna para uso pessoal. O intuito são análises de diversidade. Será dividido da seguinte forma:
 
-## Pastas 
+- Início;
+- Acumulação;
+- Riqueza estimada;
+- Diveridade;
+- PCA.
+
+## Início
+Primeiro, vamos indicar as pastas corretas.
+- Prestar a atenção no diretório.
+```
 getwd()
-setwd("/home/user/Área de Trabalho/Serviços/ES - Baixo Guandu/2021_06_30_granitos_itaguacu/R") #Mudança de diretório para pasta do projeto
-
-#p_opendir(path.expand("~")) #abrir pasta
-#p_opendir(pacman:::p_basepath()) #abir pasta pacotes
-### Pacotes e entradas de arquivos
+setwd("/home/user/Área de Trabalho/Serviços/ES - Água Doce do Norte/2018_02_12_dj_granitos/2021_07_06_dj_granitos/R") 
+```
+Agora os principais pacotes utilizados:
+```
 if(!require(pacman, quietly = TRUE))(install.packages("pacman")) #agrupador de funções
-#pacman::p_load(readODS, openxlsx) 
-#setRepositories(ind=c(1:9))
-##### Pacote de leitor de ods (reserva)
-#caminho.do.arquivo <- "/home/user/Área de Trabalho/Serviços/ES - Rio Bananal/2021_03_06_grancol_rbananal.ods"
-#planilhatotal <- read_ods(caminho.do.arquivo,sheet = 1,col_names = T,na = "")
-#p_opendir(path.expand("~")) #abrir pasta
-#p_opendir(pacman:::p_basepath()) #abir pasta pacotes
-### Pacotes e entradas de arquivos
-if(!require(pacman, quietly = TRUE))(install.packages("pacman")) #agrupador de funções
-#pacman::p_load(readODS, openxlsx) 
-#setRepositories(ind=c(1:9))
-##### Pacote de leitor de ods (reserva)
-#caminho.do.arquivo <- "/home/user/Área de Trabalho/Serviços/ES - Rio Bananal/2021_03_06_grancol_rbananal.ods"
-#Xplanilhatotal <- read_ods(caminho.do.arquivo,sheet = 1,col_names = T,na = "")
-## Pacote de análise e leitura de dados, gráficos
-pacman::p_load(magrittr,dplyr) #magrittr para operações de pipe/dplyr para manipulador de dados
-##### Operador Pipe - usar o valor resultante da expressão do lado esquerdo como primeiro argumento da função do lado direito
-##### As medidas de dispersão são estatísticas descritivas, que quantificam de algum modo a variabilidade dos dados, geralmente utilizando como referência uma medida de posição.
-## Pacotes gŕaficos
-pacman::p_load(ggplot2, devtools, ggrepel, graphics) 
-#scripta reservas
-#installed.packages('ggplot2')
-#install.packages("devtools")
-#fazer gráficos e extensões para salvar e inserir imagem
-#require(remotes)
-#remotes::install_version
-#install_version("ggplot2", version = "2.0.0", repos = "http://cran.us.r-project.org")
-#Library(ggplot2)
-## Pacote ecologia
+pacman::p_load(magrittr,dplyr,reshape2) #magrittr para operações de pipe/dplyr para manipulador de dados
+pacman::p_load(ggplot2, devtools, ggrepel, graphics, lubridate) 
 pacman::p_load(vegan)  #vegan para estatística ecológica/graphics para os gráficos
-
-# Caregar Planilha
+```
+Agora vamos adicionar a planilha. Algumas coisas devem ser notadas:
+- O caminho do arquivo para a tabela de dados brutos;
+```
 pacman::p_load(openxlsx) 
-caminho.do.arquivo <- "/home/user/Área de Trabalho/Serviços/ES - Baixo Guandu/2020_baixo_guandu.xlsx"
+caminho.do.arquivo <- "/home/user/Área de Trabalho/Serviços/ES - Água Doce do Norte/2014_agua_doce_do_norte.xlsx"
 planilhatotal <- read.xlsx(caminho.do.arquivo, #local do arquivo
                          sheet = 1, # em qual planilha estão os dados
                          colNames = T, # as colunas dos dados possuem nomes?
                          na.strings = "NA") # como estão identificados os dados omissos?
 head(planilhatotal)
-
-### Corrigir planilha
-##### Retirar os NA 
-planilhatotal <- subset(planilhatotal, !is.na(Dia)) #tirar n/a da altitude
+```
+Agora vamos filtrar a tabela. Primeiro tirar os dias não amostrados
+```
+planilhatotal <- subset(planilhatotal, !is.na(Dia))
+planilhatotal <- subset(planilhatotal, !is.na(Mês))
+planilhatotal <- subset(planilhatotal, !is.na(Ano))
 planilhatotal <- subset(planilhatotal, !is.na(Abundancia)) #tirar n/a da Abundancia
+```
+Agora escolher o que analisar e atribuir uma tabela chamada p2 parar as análises:
+`p2 <- subset(planilhatotal, Empresa == "Itaguaçu Granitos")`
 
-##### escolher empresa
-p2 <- subset(planilhatotal, Empresa == "Itaguaçu Granitos")
+E ainda vamos atribuir as datas:
+```
+p3 <- p2 %>% 
+  select(Ano,Mês,Dia) %>% 
+  mutate(Data = make_date(Ano,Mês,Dia))
+Data <- data.frame(p3,p2)
+```
+Vamos ver:
+`ts.plot(Data$Data)`
 
-### Teste de plots
-ts.plot(p2$Abundancia)
-
-boxplot(p2l$Abundancia)
-
-# Diversidade
-# Pacote - Criar tabelas para análise (vai ter mensagem, mas funciona)
-pacman::p_load(reshape2)
 ## Acumulação
-#### Acumulação de Discos
-##### Riqueza
-acum<-reshape2::dcast(p2, Dia ~ Espécie) #, value.var = "Abundancia", fun.aggregate = sum)
+Agora vamos aos cálculos de diversidade. Vamos primeiro selecionar a tabela.
+```
+acum<-reshape2::dcast(Data, Espécie ~ Data)
 acum=data.frame(acum, row.names=1)
-spAbund<-rowSums(acum) #abunância por espécie
-spAbund
-
-##### Curva
-rarecurve(acum, col="blue",cex=1,xlab="Tamanho amostral",ylab="Dias",main="Curva de abundância de registros") 
-
-#abundância espécie
-acumt=t(acum)
+```
+E vamos gerar a curva:
+```
 acumplot<-specaccum(acum) #dados de acumulação
 plot(acumplot) #curva simples
 plot(acumplot,ci.type="poly",col="black",lwd=2,ci.lty=0,ci.col="lightgrey",ylab="Riqueza",
      xlab="Dias",main="Curva de acumulação de registros",las=1,font=1.5,font.lab=1.5,cex.lab=1,cex.axis=1) #curva clássica
-
-### Acumulação Discos
-##### Cálculos de rarefação
+```
+Podemos fazer alguns tipos de gráficos de acumulação, veremos a seguir em três etapas, primeiro selecionando a tabela.
+```
+acum<-reshape2::dcast(Data, Data ~ Espécie, value.var = "Abundancia", fun = length)
+acum=data.frame(acum, row.names=1)
+```
+Segundo os cálculos
+```
 sp1<-specaccum(acum,method="rarefaction")
-
 sp2<-specaccum(acum,method="exact")
-
 sp3<-specaccum(acum,method="random")
-
 sp4<-specaccum(acum,method="collector")
-
-##### Rarefação Gráficos
-###### Gráficos juntos
+```
+Por fim os gráficos:
+```
 #par(mgp=c(1,1,0)) #exportar a imagem
 #png(filename="/home/user/Área de Trabalho/Serviços/ES - Baixo Guandu/2021_06_30_granitos_itaguacu/R/1.Acumul.png",width=800,height=600) #local e tmamanho
 par(mfrow=c(2,2)) 
@@ -105,37 +88,63 @@ plot(sp3, ci.type="poly", col="black", lwd=2, ci.lty=0, ci.col="yellow",xlab="Am
 plot(sp4, ci.type="poly", col="black", lwd=2, ci.lty=0, ci.col="lightblue",xlab="Amostras",ylab="Curva do Coletor")
 par(mfrow=c(1,1)) #compilado de curvas
 #dev.off()
-
-###### Gráficos de coletor
+```
+Podemos focar também a curva do coletor e adicionar a abundância por dia. Primeiro vamos aos cálculos de diversidade e abundância.
+```
 sp4<-specaccum(acum,method="collector")
-acum<-reshape2::dcast(p2, Ano + Mês + Dia + Data ~ Espécie, value.var = "Abundancia", fun.aggregate = sum)
-#names(acum)[grep('Animalia', names(altitude))] <- 'Abundance'
 shannon<-diversity(acum)
-a<-data.frame(sp4$sites,sp4$richness,acum,shannon,spAbund)
-names(a)[grep('shannon', names(a))] <- 'Diversidade'
-
+spAbund<-rowSums(acum)
+```
+Agora preparamosa tabela:
+```
+acum<-reshape2::dcast(Data, Data ~ Espécie, value.var = "Abundancia", fun = length)
+a<-data.frame(shannon,spAbund,sp4$sites,sp4$richness,acum)
+```
+E plotamos:
+```
 ggplot(a, aes(x = Data, y = sp4.richness)) + 
   geom_line(size=6, alpha=0.6, color="Gray") + #geom_line(aes(group = sp4.sites))
-  geom_point(aes(size=spAbund, colour=`Diversidade`), alpha=0.3) +
-    #geom_label_repel(aes(label = sp4$richness), size=4, alpha=0.8, #funciona no zoom
-                   #box.padding   = 0.35, 
-                   #point.padding = 0.75,
-                   #segment.color = 'grey50') +
+  geom_point(aes(size=spAbund, colour=shannon), alpha=0.3) +
+    geom_label_repel(aes(label = sp4$richness), size=4, alpha=0.8, #funciona no zoom
+                   box.padding   = 0.35, 
+                   point.padding = 0.75,
+                   segment.color = 'grey50') +
   scale_size(range = c(.1, 24), name="Abundância de registros") +
   #geom_text(aes(label = a$sp4.richness),col = 'black',size = 5) +
-  ggtitle("Curva do coletor") +
-  scale_x_continuous(breaks = 1:5) +
-  xlab("Dias") +
-  ylab("Riqueza") + 
+  labs(title="Curva do coletor", subtitle="Total", y="Riqueza",x="Data", caption="",
+       color = "Diversidade", size = "Abundância de registros") +
   theme(axis.title = element_text(size = 18),
         axis.text = element_text(size = 14)) + theme_classic() 
 #ggsave("2.Acumul_álbum_count.png",width = 14, height = 6, dpi = 300)
-
-### Estimativa de riqueza
-faixa<-reshape2::dcast(p2, Data ~ Espécie, value.var = "Abundancia", fun.aggregate = sum)
-faixa=data.frame(faixa,row.names=1)
-pool1<-specpool(faixa)
+```
+## Estimativa de riqueza
+Vamos também estimar a riqueza. Vamos selecionar a tabela. Podem ter duas variáveis:
+- Localidade;
+- Trilha
+```
+p3<-reshape2::dcast(Data, Localidade ~ Espécie)
+p3=data.frame(p3, row.names=1)
+```
+Agora vamos estimar a riqueza considerando a localidade toda:
+```
+pool<-specpool(p3)
+pool
+```
+Mas como vamos ver as localidades separadas? Vamos fazer duas tabelas. 
+- Uma indicando a abundância de espécies por dia, denominada de p3;
+- Uma indicando a localidade ou trilha dessas espécies, denominada p4.
+```
+p3<-reshape2::dcast(Data, Data + Localidade ~ Espécie)
+excluir <- c("Data", "Localidade")
+p3 <- p3[,!(names(p3)%in% excluir)]
+p4<-reshape2::dcast(Data, Data + Localidade ~ Classe)
+```
+Agora a estimativa de riqueza por localidade.
+```
+pool1<-specpool(p3, p4$Localidade) 
 pool1
+```
+
 
 # Classe
 ## Avifauna / Herpetofauna / Mastofauna
