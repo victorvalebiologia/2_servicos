@@ -40,12 +40,11 @@ planilhatotal <- subset(planilhatotal, !is.na(Dia))
 planilhatotal <- subset(planilhatotal, !is.na(Mês))
 planilhatotal <- subset(planilhatotal, !is.na(Ano))
 planilhatotal <- subset(planilhatotal, !is.na(Abundancia)) 
-planilhatotal <- subset(planilhatotal, Origem == "Nativo") 
 ```
 Agora escolher o que analisar e atribuir uma tabela chamada p2 parar as análises:
 ```
 p2 <- planilhatotal
-p2 <- subset(p2, Empresa == "Itaguaçu Granitos")
+p2 <- subset(p2, Empresa == "DJ Granitos")
 ```
 E ainda vamos atribuir as datas:
 ```
@@ -65,13 +64,15 @@ Vamos cacular os principais índices de dievrsidade aqui. Primeiro vamos selecio
 - Mastofauna.
 Além de filtrar para apenas dados primários e espećies nativas.
 ```
+p2 <- Data
+p2 <- subset(p2, Empresa == "DJ Granitos")
 p2 <- subset(p2, Grupo == "Herpetofauna") 
 p2 <- subset(p2, Dados == "Primários") 
 p2 <- subset(p2, Origem == "Nativo") 
 ```
 Agora a tabela para trabalhar.
 ```
-acum<-reshape2::dcast(Data, Data ~ Espécie)
+acum<-reshape2::dcast(p2, Data ~ Espécie)
 acum=data.frame(acum, row.names=1)
 ```
 E vamos gerar a curva:
@@ -83,7 +84,7 @@ plot(acumplot,ci.type="poly",col="black",lwd=2,ci.lty=0,ci.col="lightgrey",ylab=
 ```
 Podemos fazer alguns tipos de gráficos de acumulação, veremos a seguir em três etapas, primeiro selecionando a tabela.
 ```
-acum<-reshape2::dcast(Data, Data ~ Espécie, value.var = "Abundancia", fun = length)
+acum<-reshape2::dcast(p2, Data ~ Espécie, value.var = "Abundancia", fun = length)
 acum=data.frame(acum, row.names=1)
 ```
 Segundo os cálculos
@@ -140,7 +141,7 @@ Vamos também estimar a riqueza. Vamos selecionar a tabela. Podem ter duas vari�
 - Empresa;
 - Grupo;
 ```
-p3<-reshape2::dcast(Data, Empresa ~ Espécie, value.var = "Abundancia", fun = length)
+p3<-reshape2::dcast(Data, Campanha ~ Espécie, value.var = "Abundancia", fun = length)
 p3=data.frame(p3, row.names=1)
 ```
 Agora vamos estimar a riqueza considerando a localidade toda:
@@ -185,7 +186,8 @@ Aqui também podemos filtrar a tabela.
 - Mastofauna.
 Além de filtrar para apenas dados primários e espećies nativas.
 ```
-p2 <- planilhatotal
+p2 <- Data
+p2 <- subset(p2, Empresa == "DJ Granitos")
 p2 <- subset(p2, Grupo == "Herpetofauna") 
 p2 <- subset(p2, Dados == "Primários") 
 p2 <- subset(p2, Origem == "Nativo") 
@@ -197,7 +199,7 @@ Agora vamos filtrar a tabela, ela pode ser por:
 - Empresa;
 - Localidade.
 ```
-local<-reshape2::dcast(p2, Empresa ~ Espécie, value.var = "Abundancia", fun = length)
+local<-reshape2::dcast(p2, Registro ~ Espécie, value.var = "Abundancia", fun = length)
 local=data.frame(local,row.names=1)
 ```
 E vamos aos cálculos;
@@ -205,13 +207,13 @@ E vamos aos cálculos;
 S <- specnumber(local) 
 spAbund<-rowSums(local) #abunância por faixa
 shannon <- diversity(local)
-J <- H/log(S) #Pielou
+J <- shannon/log(S) #Pielou
 simp <- diversity(local, "simpson")
 invsimp <- diversity(local, "inv")
 ```
 E vamos plotar em gráfico, mas primeiro a tabela.
 ```
-local<-reshape2::dcast(p2, Empresa ~ Espécie, value.var = "Abundancia", fun = length)
+local<-reshape2::dcast(p2, Registro ~ Espécie, value.var = "Abundancia", fun = length)
 local<-data.frame(S, spAbund, shannon,J, local)
 ```
 E agora o gráfico. Lembrar de verificar:
@@ -220,13 +222,13 @@ E agora o gráfico. Lembrar de verificar:
 - No caso de família, trocar o y para S e x para Família.
 ```
 ggplot(local, aes(x = S, y = shannon)) + 
-  geom_point(aes(size=spAbund, colour = Empresa))+ 
+  geom_point(aes(size=spAbund, colour = Registro))+ 
   scale_size(range = c(.1, 18), name = "Abundância") +
-  geom_label_repel(aes(label = S), size=4, alpha= 1, #funciona no zoom
+  geom_label_repel(aes(label = S), size=4, alpha= 0.7, #funciona no zoom
                    box.padding   = 0.35, 
                    point.padding = 0.75,
                    segment.color = 'grey50') +
-  labs(title="Riqueza e diversidade", subtitle="Empresas", y="Diversidade",x="Riqueza", caption="",
+  labs(title="Riqueza e diversidade", subtitle="Família", y="Diversidade",x="Riqueza", caption="",
        color = "Empresas", size = "Abundância de registros") +
   theme(axis.title = element_text(size = 18),
         axis.text = element_text(size = 14)) + theme_classic() 
@@ -234,15 +236,16 @@ ggplot(local, aes(x = S, y = shannon)) +
 ```
 Um outro exemplo de gráfico é um de barras:
 ```
-ggplot(local, aes(Empresa)) + 
-  geom_bar(aes(weight = S, fill=spAbund, colour = shannon), size = 4) + 
-  geom_point(aes(y = S, x = Empresa)) +
-  geom_label(aes(y = S, x = Empresa, label = S), size=4, alpha= 1) +
-  labs(title="Riqueza e diversidade", subtitle="Empresas", y="Riqueza",x="Empresa", caption="Dados primários",
-       color = "Diversidade", fill = "Abundância") +
-  scale_colour_continuous(type = "viridis") +
+ggplot(local, aes(Família)) + 
+  geom_bar(aes(weight = S, fill = shannon), alpha = 0.7) + 
+  geom_point(aes(y = S, x = Família, size = spAbund)) +
+  geom_label_repel(aes(y = S, x = Família, label = S), size=4, alpha= 1) +
+  labs(title="Riqueza e diversidade", subtitle="Família", y="Riqueza",x="Família", caption="Dados primários",
+       fill = "Diversidade", size = "Abundância") +
+  scale_fill_continuous(type = "viridis") +
   theme(axis.title = element_text(size = 18),
-        axis.text = element_text(size = 14)) + theme_classic() 
+        axis.text = element_text(size = 14)) + 
+        coord_flip() + theme_classic() 
 ```
 ## 5. Cluster
 Fazer um cladogroma de similaridade também pode nos ajudar a desenvolver nosso relatório. Vamos selecionar o que relacionar, podendo ser:
