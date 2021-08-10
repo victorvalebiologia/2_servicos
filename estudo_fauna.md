@@ -188,9 +188,9 @@ Além de filtrar para apenas dados primários e espećies nativas.
 ```
 p2 <- Data
 p2 <- subset(p2, Empresa == "DJ Granitos")
-p2 <- subset(p2, Grupo == "Herpetofauna") 
 p2 <- subset(p2, Dados == "Primários") 
 p2 <- subset(p2, Origem == "Nativo") 
+p2 <- subset(p2, Grupo == "Mastofauna") 
 ```
 Agora vamos filtrar a tabela, ela pode ser por:
 - Classe;
@@ -199,7 +199,7 @@ Agora vamos filtrar a tabela, ela pode ser por:
 - Empresa;
 - Localidade.
 ```
-local<-reshape2::dcast(p2, Registro ~ Espécie, value.var = "Abundancia", fun = length)
+local<-reshape2::dcast(p2, Vegetação ~ Espécie, value.var = "Abundancia", fun = length)
 local=data.frame(local,row.names=1)
 ```
 E vamos aos cálculos;
@@ -213,7 +213,7 @@ invsimp <- diversity(local, "inv")
 ```
 E vamos plotar em gráfico, mas primeiro a tabela.
 ```
-local<-reshape2::dcast(p2, Registro ~ Espécie, value.var = "Abundancia", fun = length)
+local<-reshape2::dcast(p2, Vegetação ~ Espécie, value.var = "Abundancia", fun = length)
 local<-data.frame(S, spAbund, shannon,J, local)
 ```
 E agora o gráfico. Lembrar de verificar:
@@ -222,13 +222,13 @@ E agora o gráfico. Lembrar de verificar:
 - No caso de família, trocar o y para S e x para Família.
 ```
 ggplot(local, aes(x = S, y = shannon)) + 
-  geom_point(aes(size=spAbund, colour = Registro))+ 
+  geom_point(aes(size=spAbund, colour = Vegetação))+ 
   scale_size(range = c(.1, 18), name = "Abundância") +
   geom_label_repel(aes(label = S), size=4, alpha= 0.7, #funciona no zoom
                    box.padding   = 0.35, 
                    point.padding = 0.75,
                    segment.color = 'grey50') +
-  labs(title="Riqueza e diversidade", subtitle="Família", y="Diversidade",x="Riqueza", caption="",
+  labs(title="Riqueza e diversidade", subtitle="Uso e Ocupação do Solo", y="Diversidade",x="Riqueza", caption="",
        color = "Empresas", size = "Abundância de registros") +
   theme(axis.title = element_text(size = 18),
         axis.text = element_text(size = 14)) + theme_classic() 
@@ -236,12 +236,13 @@ ggplot(local, aes(x = S, y = shannon)) +
 ```
 Um outro exemplo de gráfico é um de barras:
 ```
-ggplot(local, aes(Família)) + 
+ggplot(local, aes(Vegetação)) + 
   geom_bar(aes(weight = S, fill = shannon), alpha = 0.7) + 
-  geom_point(aes(y = S, x = Família, size = spAbund)) +
-  geom_label_repel(aes(y = S, x = Família, label = S), size=4, alpha= 1) +
-  labs(title="Riqueza e diversidade", subtitle="Família", y="Riqueza",x="Família", caption="Dados primários",
+  geom_point(aes(y = S, x = Vegetação, size = spAbund)) +
+  geom_label_repel(aes(y = S, x = Vegetação, label = S), size=4, alpha= 1) +
+  labs(title="Riqueza e diversidade", subtitle="Uso e Ocupação do Solo", y="Riqueza",x="Família", caption="Dados primários",
        fill = "Diversidade", size = "Abundância") +
+  scale_size(range = c(.1, 18), name = "Abundância") +
   scale_fill_continuous(type = "viridis") +
   theme(axis.title = element_text(size = 18),
         axis.text = element_text(size = 14)) + 
