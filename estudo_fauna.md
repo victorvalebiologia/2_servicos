@@ -140,6 +140,29 @@ Vamos também estimar a riqueza. Vamos selecionar a tabela. Podem ter duas vari�
 - Localidade;
 - Empresa;
 - Grupo;
+
+Primeiro vamos foltrar e atribuir as datas:
+
+```
+p2 <- Data
+p2 <- subset(p2, Empresa == "Red Granitos")
+p2 <- subset(p2, Grupo == "Mastofauna") 
+p2 <- subset(p2, Dados == "Primários") 
+p2 <- subset(p2, Origem == "Nativo") 
+p3 <- p2 %>% 
+  select(Ano,Mês,Dia) %>% 
+  mutate(Data = make_date(Ano,Mês,Dia))
+Data <- data.frame(p3,p2)
+```
+
+## 2. Acumulação
+Vamos cacular os principais índices de dievrsidade aqui. Primeiro vamos selecionar oa dados que podem ser:
+- Gerais;
+- Avifauna;
+- Herpetofauna;
+- Mastofauna.
+Além de filtrar para apenas dados primários e espećies nativas.
+
 ```
 p3<-reshape2::dcast(Data, Campanha ~ Espécie, value.var = "Abundancia", fun = length)
 p3=data.frame(p3, row.names=1)
@@ -166,14 +189,14 @@ Precisamos fazer duas tabelas.
 - Lembrar de conferir a variável
 ```
 #p3 <- subset(Data, Empresa == "XXX")
-p3<-reshape2::dcast(Data, Data + Grupo ~ Espécie, value.var = "Abundancia", fun = length)
-excluir <- c("Data", "Grupo")
+p3<-reshape2::dcast(Data, Data + Localidade ~ Espécie, value.var = "Abundancia", fun = length)
+excluir <- c("Data", "Localidade")
 p3 <- p3[,!(names(p3)%in% excluir)]
-p4<-reshape2::dcast(Data, Data + Grupo ~ Classe, value.var = "Abundancia", fun = length)
+p4<-reshape2::dcast(Data, Data + Localidade ~ Classe, value.var = "Abundancia", fun = length)
 ```
 Agora a estimativa de riqueza por localidade.
 ```
-pool<-specpool(p3, p4$Grupo) 
+pool<-specpool(p3, p4$Localidade) 
 pool
 boxplot(pool$chao) 
 ```
@@ -187,7 +210,7 @@ Aqui também podemos filtrar a tabela.
 Além de filtrar para apenas dados primários e espećies nativas.
 ```
 p2 <- Data
-p2 <- subset(p2, Empresa == "DJ Granitos")
+p2 <- subset(p2, Empresa == "Red Granitos")
 p2 <- subset(p2, Dados == "Primários") 
 p2 <- subset(p2, Origem == "Nativo") 
 p2 <- subset(p2, Grupo == "Mastofauna") 
@@ -199,7 +222,7 @@ Agora vamos filtrar a tabela, ela pode ser por:
 - Empresa;
 - Localidade.
 ```
-local<-reshape2::dcast(p2, Vegetação ~ Espécie, value.var = "Abundancia", fun = length)
+local<-reshape2::dcast(p2, Ordem ~ Espécie, value.var = "Abundancia", fun = length)
 local=data.frame(local,row.names=1)
 ```
 E vamos aos cálculos;
@@ -213,7 +236,7 @@ invsimp <- diversity(local, "inv")
 ```
 E vamos plotar em gráfico, mas primeiro a tabela.
 ```
-local<-reshape2::dcast(p2, Vegetação ~ Espécie, value.var = "Abundancia", fun = length)
+local<-reshape2::dcast(p2, Ordem ~ Espécie, value.var = "Abundancia", fun = length)
 local<-data.frame(S, spAbund, shannon,J, local)
 ```
 E agora o gráfico. Lembrar de verificar:
@@ -222,13 +245,13 @@ E agora o gráfico. Lembrar de verificar:
 - No caso de família, trocar o y para S e x para Família.
 ```
 ggplot(local, aes(x = S, y = shannon)) + 
-  geom_point(aes(size=spAbund, colour = Vegetação))+ 
+  geom_point(aes(size=spAbund, colour = Ordem))+ 
   scale_size(range = c(.1, 18), name = "Abundância") +
   geom_label_repel(aes(label = S), size=4, alpha= 0.7, #funciona no zoom
                    box.padding   = 0.35, 
                    point.padding = 0.75,
                    segment.color = 'grey50') +
-  labs(title="Riqueza e diversidade", subtitle="Uso e Ocupação do Solo", y="Diversidade",x="Riqueza", caption="",
+  labs(title="Riqueza e diversidade", subtitle="Ordem", y="Diversidade",x="Riqueza", caption="",
        color = "Empresas", size = "Abundância de registros") +
   theme(axis.title = element_text(size = 18),
         axis.text = element_text(size = 14)) + theme_classic() 
@@ -236,11 +259,12 @@ ggplot(local, aes(x = S, y = shannon)) +
 ```
 Um outro exemplo de gráfico é um de barras:
 ```
-ggplot(local, aes(Vegetação)) + 
+ggplot(local, aes(Ordem)) + 
   geom_bar(aes(weight = S, fill = shannon), alpha = 0.7) + 
-  geom_point(aes(y = S, x = Vegetação, size = spAbund)) +
-  geom_label_repel(aes(y = S, x = Vegetação, label = S), size=4, alpha= 1) +
-  labs(title="Riqueza e diversidade", subtitle="Uso e Ocupação do Solo", y="Riqueza",x="Família", caption="Dados primários",
+  geom_point(aes(y = S, x = Ordem, size = spAbund)) +
+  geom_label_repel(aes(y = S, x = Ordem, label = S), size=4, alpha= 1) +
+  #geom_text(aes(y = S, x = Ordem, label = spAbund), size=4, alpha= 1, colour = "white") +
+  labs(title="Riqueza e diversidade", subtitle="Localidades", y="Ordem",x="Família", caption="Dados primários",
        fill = "Diversidade", size = "Abundância") +
   scale_size(range = c(.1, 18), name = "Abundância") +
   scale_fill_continuous(type = "viridis") +
@@ -255,7 +279,7 @@ Fazer um cladogroma de similaridade também pode nos ajudar a desenvolver nosso 
 - Epresa.
 ```
 pacman::p_load("ade4")
-local<-reshape2::dcast(planilhatotal, Empresa ~ Espécie, value.var = "Abundancia", fun = length)
+local<-reshape2::dcast(planilhatotal, Impacto ~ Espécie, value.var = "Abundancia", fun = length)
 local=data.frame(local, row.names=1)
 d <- dist.binary(local, method = 1, diag = FALSE, upper = FALSE) #method 1 is Jaccard index (1901) S3 coefficient of Gower & Legendre
 hc <- hclust(d)               # apply hierarchical clustering 
@@ -280,10 +304,10 @@ Outra coisa a se atentar.
 - Riqueza;
 - Abundância - add  , value.var = "Abundancia", fun.aggregate = sum).
 ```
-local<-reshape2::dcast(p2, Vegetação ~ Classe, value.var = "Abundancia", fun.aggregate = sum)  #sem abudância para ser a riqueza/diversidade
+local<-reshape2::dcast(p2, Impacto ~ Ordem, value.var = "Abundancia", fun.aggregate = sum)  #sem abudância para ser a riqueza/diversidade
 local[ , which(apply(local, 2, var) != 0)]
 local <- as.matrix(local[ ,-1])
-grupo<-reshape2::dcast(unique(p2), Vegetação ~ Classe, value.var = "Abundancia", fun.aggregate = sum)
+grupo<-reshape2::dcast(unique(p2), Impacto ~ Ordem, value.var = "Abundancia", fun.aggregate = sum)
 #grupo2<-reshape2::dcast(p2, País ~ Gênero, value.var = "Abundancia", fun = length)
 ```
 Agora o gráficos:
@@ -293,7 +317,7 @@ wine.pca <- prcomp(local, scale. = TRUE)
 ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
          #groups = grupo$Fator, 
          ellipse = TRUE, circle = TRUE) +
-  geom_label_repel(aes(label = grupo$Vegetação), size=4, alpha= 1, 
+  geom_label_repel(aes(label = grupo$Impacto), size=4, alpha= 1, 
                    box.padding   = 0.35, 
                    point.padding = 0.75,
                    segment.color = 'grey50') +
