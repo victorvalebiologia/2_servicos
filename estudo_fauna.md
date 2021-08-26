@@ -5,7 +5,7 @@ Repositório para trelatório técnicos de estudo de fauna para uso pessoal. O i
 - 2. Acumulação;
 - 3. Riqueza estimada;
 - 4. Diveridade;
-- 5. Cluester;
+- 5. Clueter;
 - 6. PCA;
 - 7. Correlação.
 
@@ -14,7 +14,7 @@ Primeiro, vamos indicar as pastas corretas.
 - Prestar a atenção no diretório.
 ```
 getwd()
-setwd("/home/user/Área de Trabalho/Serviços/ES - Água Doce do Norte/2018_02_12_dj_granitos/2021_07_06_dj_granitos/R") 
+setwd("/home/user/Área de Trabalho/Serviços/MG - Caldas/2021_06_07 - Red/R") 
 ```
 Agora os principais pacotes utilizados:
 ```
@@ -27,7 +27,7 @@ Agora vamos adicionar a planilha. Algumas coisas devem ser notadas:
 - O caminho do arquivo para a tabela de dados brutos;
 ```
 pacman::p_load(openxlsx) 
-caminho.do.arquivo <- "/home/user/Área de Trabalho/Serviços/ES - Água Doce do Norte/2014_agua_doce_do_norte.xlsx"
+caminho.do.arquivo <- "/home/user/Área de Trabalho/Serviços/MG - Caldas/2021_06_07_minas.xlsx"
 planilhatotal <- read.xlsx(caminho.do.arquivo, #local do arquivo
                          sheet = 1, # em qual planilha estão os dados
                          colNames = T, # as colunas dos dados possuem nomes?
@@ -44,7 +44,7 @@ planilhatotal <- subset(planilhatotal, !is.na(Abundancia))
 Agora escolher o que analisar e atribuir uma tabela chamada p2 parar as análises:
 ```
 p2 <- planilhatotal
-p2 <- subset(p2, Empresa == "DJ Granitos")
+p2 <- subset(p2, Empresa == "Red Granitos")
 ```
 E ainda vamos atribuir as datas:
 ```
@@ -65,14 +65,14 @@ Vamos cacular os principais índices de dievrsidade aqui. Primeiro vamos selecio
 Além de filtrar para apenas dados primários e espećies nativas.
 ```
 p2 <- Data
-p2 <- subset(p2, Empresa == "DJ Granitos")
-p2 <- subset(p2, Grupo == "Herpetofauna") 
+p2 <- subset(p2, Empresa == "Red Granitos")
+p2 <- subset(p2, Grupo == "Mastofauna") 
 p2 <- subset(p2, Dados == "Primários") 
 p2 <- subset(p2, Origem == "Nativo") 
 ```
 Agora a tabela para trabalhar.
 ```
-acum<-reshape2::dcast(p2, Data ~ Espécie)
+acum<-reshape2::dcast(p2, Data ~ Espécie, value.var = "Abundancia", fun.aggregate = sum)
 acum=data.frame(acum, row.names=1)
 ```
 E vamos gerar a curva:
@@ -265,7 +265,11 @@ plot(hc, labels=local$ID)    # plot the dendrogram
 O PCA ou Análise de Componentes Principais ou PCA (Principal Component Analysis) é uma técnica de análise multivariada que pode ser usada para analisar inter-relações entre um grande número de variáveis e explicar essas variáveis em termos de suas dimensões inerentes (Componentes). O objetivo é encontrar um meio de condensar a informação contida em várias variáveis originais em um conjunto menor de variáveis estatísticas (componentes) com uma perda mínima de informação.
 Primeiro os pacotes:
 ```
-pacman::p_load(psych) library("devtools") library("ggbiplot") #install_github("vqv/ggbiplot")
+pacman::p_load(psych) 
+library("devtools") 
+library("ggbiplot") 
+library("ggrepel") 
+#install_github("vqv/ggbiplot")
 ```
 Agra vamos selecionar os dados.Pode ser:
 - Classe;
@@ -274,21 +278,22 @@ Agra vamos selecionar os dados.Pode ser:
 - Empresa.
 Outra coisa a se atentar. 
 - Riqueza;
-- Abundância - add  ,value.var = "Abundancia", fun = length).
+- Abundância - add  , value.var = "Abundancia", fun.aggregate = sum).
 ```
-local<-reshape2::dcast(p2, Empresa ~ Classe)  #sem abudância para ser a riqueza/diversidade
+local<-reshape2::dcast(p2, Vegetação ~ Classe, value.var = "Abundancia", fun.aggregate = sum)  #sem abudância para ser a riqueza/diversidade
 local[ , which(apply(local, 2, var) != 0)]
 local <- as.matrix(local[ ,-1])
-grupo<-reshape2::dcast(p2, Empresa ~ Classe, value.var = "Abundancia", fun = length)
+grupo<-reshape2::dcast(unique(p2), Vegetação ~ Classe, value.var = "Abundancia", fun.aggregate = sum)
 #grupo2<-reshape2::dcast(p2, País ~ Gênero, value.var = "Abundancia", fun = length)
 ```
 Agora o gráficos:
+Obs.: lembrar de ativar ggbplot  ggrepel
 ```
 wine.pca <- prcomp(local, scale. = TRUE)
 ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
          #groups = grupo$Fator, 
          ellipse = TRUE, circle = TRUE) +
-  geom_label_repel(aes(label = grupo$Empresa), size=4, alpha= 1, 
+  geom_label_repel(aes(label = grupo$Vegetação), size=4, alpha= 1, 
                    box.padding   = 0.35, 
                    point.padding = 0.75,
                    segment.color = 'grey50') +
