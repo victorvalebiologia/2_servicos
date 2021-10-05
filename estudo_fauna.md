@@ -14,7 +14,7 @@ Primeiro, vamos indicar as pastas corretas.
 - Prestar a atenção no diretório.
 ```
 getwd()
-setwd("/home/user/Área de Trabalho/Serviços/MG - Caldas/2021_06_07 - Red/R") 
+setwd("/home/user/Área de Trabalho/Serviços/ES - Castelo/2021_rogran/R") 
 ```
 Agora os principais pacotes utilizados:
 ```
@@ -27,7 +27,7 @@ Agora vamos adicionar a planilha. Algumas coisas devem ser notadas:
 - O caminho do arquivo para a tabela de dados brutos;
 ```
 pacman::p_load(openxlsx) 
-caminho.do.arquivo <- "/home/user/Área de Trabalho/Serviços/MG - Caldas/2021_06_07_minas.xlsx"
+caminho.do.arquivo <- "/home/user/Área de Trabalho/Serviços/ES - Castelo/2021_Castelo.xlsx"
 planilhatotal <- read.xlsx(caminho.do.arquivo, #local do arquivo
                          sheet = 1, # em qual planilha estão os dados
                          colNames = T, # as colunas dos dados possuem nomes?
@@ -44,7 +44,7 @@ planilhatotal <- subset(planilhatotal, !is.na(Abundancia))
 Agora escolher o que analisar e atribuir uma tabela chamada p2 parar as análises:
 ```
 p2 <- planilhatotal
-p2 <- subset(p2, Empresa == "Red Granitos")
+p2 <- subset(p2, Empresa == "Rogran Mármore e Granitos")
 ```
 E ainda vamos atribuir as datas:
 ```
@@ -65,10 +65,12 @@ Vamos cacular os principais índices de dievrsidade aqui. Primeiro vamos selecio
 Além de filtrar para apenas dados primários e espećies nativas.
 ```
 p2 <- Data
-p2 <- subset(p2, Empresa == "Red Granitos")
-p2 <- subset(p2, Grupo == "Mastofauna") 
+p2 <- subset(p2, Empresa == "Rogran Mármore e Granitos")
+
 p2 <- subset(p2, Dados == "Primários") 
 p2 <- subset(p2, Origem == "Nativo") 
+
+#p2 <- subset(p2, Grupo == "Mastofauna") 
 ```
 Agora a tabela para trabalhar.
 ```
@@ -145,10 +147,12 @@ Primeiro vamos foltrar e atribuir as datas:
 
 ```
 p2 <- Data
-p2 <- subset(p2, Empresa == "Red Granitos")
-p2 <- subset(p2, Grupo == "Mastofauna") 
+p2 <- subset(p2, Empresa == "Rogran Mármore e Granitos")
+
 p2 <- subset(p2, Dados == "Primários") 
 p2 <- subset(p2, Origem == "Nativo") 
+p2 <- subset(p2, Grupo == "Mastofauna") 
+
 p3 <- p2 %>% 
   select(Ano,Mês,Dia) %>% 
   mutate(Data = make_date(Ano,Mês,Dia))
@@ -164,7 +168,7 @@ Vamos cacular os principais índices de dievrsidade aqui. Primeiro vamos selecio
 Além de filtrar para apenas dados primários e espećies nativas.
 
 ```
-p3<-reshape2::dcast(Data, Campanha ~ Espécie, value.var = "Abundancia", fun = length)
+p3<-reshape2::dcast(Data, Dia ~ Espécie, value.var = "Abundancia", fun = length)
 p3=data.frame(p3, row.names=1)
 ```
 Agora vamos estimar a riqueza considerando a localidade toda:
@@ -189,14 +193,14 @@ Precisamos fazer duas tabelas.
 - Lembrar de conferir a variável
 ```
 #p3 <- subset(Data, Empresa == "XXX")
-p3<-reshape2::dcast(Data, Data + Localidade ~ Espécie, value.var = "Abundancia", fun = length)
-excluir <- c("Data", "Localidade")
+p3<-reshape2::dcast(Data, Data + Grupo ~ Espécie, value.var = "Abundancia", fun = length)
+excluir <- c("Data", "Grupo")
 p3 <- p3[,!(names(p3)%in% excluir)]
-p4<-reshape2::dcast(Data, Data + Localidade ~ Classe, value.var = "Abundancia", fun = length)
+p4<-reshape2::dcast(Data, Data + Grupo ~ Classe, value.var = "Abundancia", fun = length)
 ```
 Agora a estimativa de riqueza por localidade.
 ```
-pool<-specpool(p3, p4$Localidade) 
+pool<-specpool(p3, p4$Grupo) 
 pool
 boxplot(pool$chao) 
 ```
@@ -222,13 +226,13 @@ Agora vamos filtrar a tabela, ela pode ser por:
 - Empresa;
 - Localidade.
 ```
-local<-reshape2::dcast(p2, Ordem ~ Espécie, value.var = "Abundancia", fun = length)
+local<-reshape2::dcast(p2, Vegetação ~ Espécie, value.var = "Abundancia", fun = length)
 local=data.frame(local,row.names=1)
 ```
 E vamos aos cálculos;
 ```
 S <- specnumber(local) 
-spAbund<-rowSums(local) #abunância por faixa
+spAbund <-rowSums(local) #abunância por faixa
 shannon <- diversity(local)
 J <- shannon/log(S) #Pielou
 simp <- diversity(local, "simpson")
