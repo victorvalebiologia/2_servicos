@@ -70,7 +70,7 @@ p2 <- subset(p2, Empresa == "Rogran Mármore e Granitos")
 p2 <- subset(p2, Dados == "Primários") 
 p2 <- subset(p2, Origem == "Nativo") 
 
-#p2 <- subset(p2, Grupo == "Mastofauna") 
+p2 <- subset(p2, Grupo == "Mastofauna") 
 ```
 Agora a tabela para trabalhar.
 ```
@@ -214,6 +214,7 @@ Aqui também podemos filtrar a tabela.
 Além de filtrar para apenas dados primários e espećies nativas.
 ```
 p2 <- Data
+
 p2 <- subset(p2, Empresa == "Red Granitos")
 p2 <- subset(p2, Dados == "Primários") 
 p2 <- subset(p2, Origem == "Nativo") 
@@ -240,7 +241,7 @@ invsimp <- diversity(local, "inv")
 ```
 E vamos plotar em gráfico, mas primeiro a tabela.
 ```
-local<-reshape2::dcast(p2, Ordem ~ Espécie, value.var = "Abundancia", fun = length)
+local<-reshape2::dcast(p2, Vegetação ~ Espécie, value.var = "Abundancia", fun = length)
 local<-data.frame(S, spAbund, shannon,J, local)
 ```
 E agora o gráfico. Lembrar de verificar:
@@ -263,12 +264,12 @@ ggplot(local, aes(x = S, y = shannon)) +
 ```
 Um outro exemplo de gráfico é um de barras:
 ```
-ggplot(local, aes(Ordem)) + 
+ggplot(local, aes(Vegetação)) + 
   geom_bar(aes(weight = S, fill = shannon), alpha = 0.7) + 
-  geom_point(aes(y = S, x = Ordem, size = spAbund)) +
-  geom_label_repel(aes(y = S, x = Ordem, label = S), size=4, alpha= 1) +
-  #geom_text(aes(y = S, x = Ordem, label = spAbund), size=4, alpha= 1, colour = "white") +
-  labs(title="Riqueza e diversidade", subtitle="Localidades", y="Ordem",x="Família", caption="Dados primários",
+  geom_point(aes(y = S, x = Vegetação, size = spAbund)) +
+  geom_label_repel(aes(y = S, x = Vegetação, label = S), size=4, alpha= 1) +
+  geom_label(aes(y = S, x = Vegetação, label = spAbund), size=4, alpha= 1, colour = "red") +
+  labs(title="Riqueza e diversidade", subtitle="Uso e ocupação do solo", y="Riqueza", x="Família", caption="Dados primários",
        fill = "Diversidade", size = "Abundância") +
   scale_size(range = c(.1, 18), name = "Abundância") +
   scale_fill_continuous(type = "viridis") +
@@ -276,6 +277,20 @@ ggplot(local, aes(Ordem)) +
         axis.text = element_text(size = 14)) + 
         coord_flip() + theme_classic() 
 ```
+Um gráfico para tipo de registro:
+
+```
+ggplot(Data, aes(x = Abundancia, y = Registro)) + 
+  geom_point(aes(size=Abundancia, colour = Tipo), alpha = 0.4)+ 
+  scale_size(range = c(.1, 18), name = "Abundância") +
+  facet_wrap(.~Grupo, ncol=1) +
+  labs(title="Tipo de registros", y="Tipo",x="Abundância de registros", caption="",
+       color = "Registros", size = "Abundância de registros") +
+  theme(axis.title = element_text(size = 18),
+        axis.text = element_text(size = 14)) + theme_classic() 
+#ggsave("Famíliamast.png",width = 9, height = 7, dpi = 600)
+
+```        
 ## 5. Cluster
 Fazer um cladogroma de similaridade também pode nos ajudar a desenvolver nosso relatório. Vamos selecionar o que relacionar, podendo ser:
 - Impacto;
@@ -308,10 +323,10 @@ Outra coisa a se atentar.
 - Riqueza;
 - Abundância - add  , value.var = "Abundancia", fun.aggregate = sum).
 ```
-local<-reshape2::dcast(p2, Impacto ~ Ordem, value.var = "Abundancia", fun.aggregate = sum)  #sem abudância para ser a riqueza/diversidade
+local<-reshape2::dcast(p2, Vegetação ~ Grupo, value.var = "Abundancia", fun.aggregate = sum)  #sem abudância para ser a riqueza/diversidade
 local[ , which(apply(local, 2, var) != 0)]
 local <- as.matrix(local[ ,-1])
-grupo<-reshape2::dcast(unique(p2), Impacto ~ Ordem, value.var = "Abundancia", fun.aggregate = sum)
+grupo<-reshape2::dcast(unique(p2), Vegetação ~ Grupo, value.var = "Abundancia", fun.aggregate = sum)
 #grupo2<-reshape2::dcast(p2, País ~ Gênero, value.var = "Abundancia", fun = length)
 ```
 Agora o gráficos:
@@ -321,14 +336,14 @@ wine.pca <- prcomp(local, scale. = TRUE)
 ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
          #groups = grupo$Fator, 
          ellipse = TRUE, circle = TRUE) +
-  geom_label_repel(aes(label = grupo$Impacto), size=4, alpha= 1, 
+  geom_label_repel(aes(label = grupo$Vegetação), size=4, alpha= 1, 
                    box.padding   = 0.35, 
                    point.padding = 0.75,
                    segment.color = 'grey50') +
   scale_color_discrete(name = '') +
   theme(legend.direction = 'horizontal', legend.position = 'top') +
   theme_classic()
-#ggsave("3.PCA_riqueza.png",width = 6, height = 5, dpi = 600)
+#ggsave("12b.png",width = 6, height = 5, dpi = 600)
 ```
 E os resumos:
 ```
