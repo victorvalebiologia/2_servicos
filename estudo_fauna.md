@@ -86,7 +86,7 @@ plot(acumplot,ci.type="poly",col="black",lwd=2,ci.lty=0,ci.col="lightgrey",ylab=
 ```
 Podemos fazer alguns tipos de gráficos de acumulação, veremos a seguir em três etapas, primeiro selecionando a tabela.
 ```
-acum<-reshape2::dcast(p2, Data ~ Espécie, value.var = "Abundancia", fun = length)
+acum<-reshape2::dcast(p2, Data ~ Espécie, value.var = "Abundancia", fun = sum)
 acum=data.frame(acum, row.names=1)
 ```
 Segundo os cálculos
@@ -116,7 +116,7 @@ spAbund<-rowSums(acum)
 ```
 Agora preparamosa tabela:
 ```
-acum<-reshape2::dcast(Data, Data ~ Espécie, value.var = "Abundancia", fun = length)
+acum<-reshape2::dcast(Data, Data ~ Espécie, value.var = "Abundancia", fun = sum)
 p3<-data.frame(shannon,spAbund,sp4$sites,sp4$richness,acum)
 ```
 E plotamos:
@@ -168,7 +168,7 @@ Vamos cacular os principais índices de dievrsidade aqui. Primeiro vamos selecio
 Além de filtrar para apenas dados primários e espećies nativas.
 
 ```
-p3<-reshape2::dcast(Data, Dia ~ Espécie, value.var = "Abundancia", fun = length)
+p3<-reshape2::dcast(Data, Dia ~ Espécie, value.var = "Abundancia", fun = sum)
 p3=data.frame(p3, row.names=1)
 ```
 Agora vamos estimar a riqueza considerando a localidade toda:
@@ -194,10 +194,10 @@ Precisamos fazer duas tabelas.
 ```
 #p3 <- subset(Data, Empresa == "XXX")
 
-p3<-reshape2::dcast(Data, Data + Grupo ~ Espécie, value.var = "Abundancia", fun = length)
+p3<-reshape2::dcast(Data, Data + Grupo ~ Espécie, value.var = "Abundancia", fun = sum)
 excluir <- c("Data", "Grupo")
 p3 <- p3[,!(names(p3)%in% excluir)]
-p4<-reshape2::dcast(Data, Data + Grupo ~ Classe, value.var = "Abundancia", fun = length)
+p4<-reshape2::dcast(Data, Data + Grupo ~ Classe, value.var = "Abundancia", fun = sum)
 ```
 Agora a estimativa de riqueza por localidade.
 ```
@@ -229,7 +229,7 @@ Agora vamos filtrar a tabela, ela pode ser por:
 - Empresa;
 - Localidade.
 ```
-local<-reshape2::dcast(p2, Vegetação ~ Espécie, value.var = "Abundancia", fun = length)
+local<-reshape2::dcast(p2, Vegetação ~ Espécie, value.var = "Abundancia", fun = sum)
 local=data.frame(local,row.names=1)
 ```
 E vamos aos cálculos;
@@ -243,7 +243,7 @@ invsimp <- diversity(local, "inv")
 ```
 E vamos plotar em gráfico, mas primeiro a tabela.
 ```
-local<-reshape2::dcast(p2, Vegetação ~ Espécie, value.var = "Abundancia", fun = length)
+local<-reshape2::dcast(p2, Vegetação ~ Espécie, value.var = "Abundancia", fun = sum)
 local<-data.frame(S, spAbund, shannon,J, local)
 ```
 E agora o gráfico. Lembrar de verificar:
@@ -301,7 +301,7 @@ Fazer um cladogroma de similaridade também pode nos ajudar a desenvolver nosso 
 - Epresa.
 ```
 pacman::p_load("ade4")
-local<-reshape2::dcast(planilhatotal, Impacto ~ Espécie, value.var = "Abundancia", fun = length)
+local<-reshape2::dcast(planilhatotal, Impacto ~ Espécie, value.var = "Abundancia", fun = sum)
 local=data.frame(local, row.names=1)
 d <- dist.binary(local, method = 1, diag = FALSE, upper = FALSE) #method 1 is Jaccard index (1901) S3 coefficient of Gower & Legendre
 hc <- hclust(d)               # apply hierarchical clustering 
@@ -346,7 +346,7 @@ ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
   scale_color_discrete(name = '') +
   theme(legend.direction = 'horizontal', legend.position = 'top') +
   theme_classic()
-#ggsave("12b.png",width = 6, height = 5, dpi = 600)
+#ggsave("12a.png",width = 6, height = 5, dpi = 600)
 ```
 E os resumos:
 ```
@@ -367,7 +367,7 @@ Podemo relacionar:
 
 Vamos selecionar:
 ```
-local<-reshape2::dcast(p2, Família ~ Empresa, value.var = "Abundancia", fun = length)
+local<-reshape2::dcast(p2, Família ~ Empresa, value.var = "Abundancia", fun = sum)
 local=data.frame(local, row.names=1)
 ```
 E vamos plotar:
@@ -381,4 +381,45 @@ pairs.panels(training[,-5],
              gap = 0,
              bg = c("red", "yellow", "blue"),
              pch=21)
+```
+## 8. Diversidade (alfa, beta e gama)
+Por fim, vamoz fazer uma análise simples de correlação usando o seguinte pacote.
+`pacman::p_load(entropart, hillR)`
+Podemo relacionar:
+- Grupo;
+- Classe;
+- Família;
+- Empresa;
+- Localidade;
+- Vegetação.
+
+Vamos com a tabela espécie por localidade:
+```
+local<-reshape2::dcast(p2, Espécie ~ Localidade, value.var = "Abundancia", fun = sum)
+```
+
+Agora calacular a metacomunidade:
+```
+MC<-MetaCommunity(local) 
+summary(MC)
+```
+Primeiro a alfa comunidade, podendo mudar os fatores de 0, 1 e 2. Ainda o progrma dá um alfa para cada localidade e uma alfa média = $Total
+```
+AlphaDiversity(MC, 0, Correction = "None") 
+```
+O mesmo para beta diveridade. Já adiantamos na forma de summary.
+```
+summary(BetaDiversity(MC, 0, Correction = "None")) 
+```
+E gama onde 0 = riqueza, 1 =shannon  e 2 = simpson.
+```
+GammaDiversity(MC, 0, Correction = "None")
+```
+Finalmente para entendermos a reação entre Alfa, Beta e Gama. Só é preciso mudar entre 0, 1 e 2 para obter para todas as ordens
+```
+summary(DivPart(q = 0, MC, Biased = FALSE, Correction = "None") -> dp0) ####
+```
+Agora um gráfico. Para entender os gráficos, pense na relação entre as diversidaded e Whittaker… A barra maior horizontal é a gama, barra menor, marca a alfa no eixo ‘x’ e a beta no eixo ‘y’ De forma que a área da barra menor é sempre isgual à da barra maior, mudando sua forma (mais alta e menos comprida. ou vice-versa) segundo a contribuição de alfa ou beta para a gama.
+```
+plot(dp0) 
 ```
