@@ -14,7 +14,7 @@ Primeiro, vamos indicar as pastas corretas.
 - Prestar a atenção no diretório.
 ```
 getwd()
-setwd("/home/user/Área de Trabalho/Serviços/ES - Castelo/2021_rogran_descoberta/R") 
+setwd("/home/user/Área de Trabalho/Serviços/ES - Barra de São Francisco/2021_11_16_thomazini/R") 
 ```
 Agora os principais pacotes utilizados:
 ```
@@ -27,7 +27,7 @@ Agora vamos adicionar a planilha. Algumas coisas devem ser notadas:
 - O caminho do arquivo para a tabela de dados brutos;
 ```
 pacman::p_load(openxlsx) 
-caminho.do.arquivo <- "/home/user/Área de Trabalho/Serviços/ES - Castelo/2021_Castelo.xlsx"
+caminho.do.arquivo <- "/home/user/Área de Trabalho/Serviços/ES - Barra de São Francisco/2021_barra_de_sao_francisco.xlsx"
 planilhatotal <- read.xlsx(caminho.do.arquivo, #local do arquivo
                          sheet = 1, # em qual planilha estão os dados
                          colNames = T, # as colunas dos dados possuem nomes?
@@ -44,8 +44,8 @@ planilhatotal <- subset(planilhatotal, !is.na(Abundancia))
 Agora escolher o que analisar e atribuir uma tabela chamada p2 parar as análises:
 ```
 p2 <- planilhatotal
-p2 <- subset(p2, Empresa == "Rogran Mármore e Granitos")
-p2 <- subset(p2, Localidade == "Descoberta")
+p2 <- subset(p2, Empresa == "Mineração Thomazini LTDA")
+p2 <- subset(p2, Localidade == "Córrego Itaperuna")
 ```
 E ainda vamos atribuir as datas:
 ```
@@ -66,11 +66,10 @@ Vamos cacular os principais índices de dievrsidade aqui. Primeiro vamos selecio
 Além de filtrar para apenas dados primários e espećies nativas.
 ```
 p2 <- Data
-
+p2 <- subset(p2, Origem == "Nativo")
 p2 <- subset(p2, Dados == "Primários") 
-p2 <- subset(p2, Origem == "Nativo") 
-
-p2 <- subset(p2, Grupo == "Mastofauna") 
+ 
+p2 <- subset(p2, Grupo == "Avifauna") 
 ```
 Agora a tabela para trabalhar.
 ```
@@ -114,7 +113,7 @@ sp4<-specaccum(acum,method="collector")
 shannon<-diversity(acum)
 spAbund<-rowSums(acum)
 ```
-Agora preparamosa tabela:
+Agora preparamos a tabela:
 ```
 acum<-reshape2::dcast(Data, Data ~ Espécie, value.var = "Abundancia", fun = sum)
 p3<-data.frame(shannon,spAbund,sp4$sites,sp4$richness,acum)
@@ -147,10 +146,9 @@ Primeiro vamos foltrar e atribuir as datas:
 
 ```
 p2 <- Data
-p2 <- subset(p2, Empresa == "Rogran Mármore e Granitos")
-
-p2 <- subset(p2, Dados == "Primários") 
 p2 <- subset(p2, Origem == "Nativo") 
+p2 <- subset(p2, Dados == "Primários") 
+
 p2 <- subset(p2, Grupo == "Hepertofauna") 
 
 p3 <- p2 %>% 
@@ -159,7 +157,7 @@ p3 <- p2 %>%
 Data <- data.frame(p3,p2)
 ```
 
-## 2. Acumulação
+## 2. Estimativa de riqueza
 Vamos cacular os principais índices de dievrsidade aqui. Primeiro vamos selecionar oa dados que podem ser:
 - Gerais;
 - Avifauna;
@@ -215,12 +213,13 @@ Aqui também podemos filtrar a tabela.
 Além de filtrar para apenas dados primários e espećies nativas.
 ```
 p2 <- Data
+p2 <- subset(p2, Origem == "Nativo")
 
 p2 <- subset(p2, Empresa == "Red Granitos")
 p2 <- subset(p2, Dados == "Primários") 
-p2 <- subset(p2, Origem == "Nativo") 
+ 
 p2 <- subset(p2, Localidade == "Descoberta") 
-p2 <- subset(p2, Grupo == "Avifauna") 
+p2 <- subset(p2, Grupo == "Herpetofauna")
 ```
 Agora vamos filtrar a tabela, ela pode ser por:
 - Classe;
@@ -229,7 +228,7 @@ Agora vamos filtrar a tabela, ela pode ser por:
 - Empresa;
 - Localidade.
 ```
-local<-reshape2::dcast(p2, Vegetação ~ Espécie, value.var = "Abundancia", fun = sum)
+local<-reshape2::dcast(p2, Família ~ Espécie, value.var = "Abundancia", fun = sum)
 local=data.frame(local,row.names=1)
 ```
 E vamos aos cálculos;
@@ -243,35 +242,36 @@ invsimp <- diversity(local, "inv")
 ```
 E vamos plotar em gráfico, mas primeiro a tabela.
 ```
-local<-reshape2::dcast(p2, Vegetação ~ Espécie, value.var = "Abundancia", fun = sum)
+local<-reshape2::dcast(p2, Família + Ordem ~ Espécie, value.var = "Abundancia", fun = sum)
 local<-data.frame(S, spAbund, shannon,J, local)
 ```
 E agora o gráfico. Lembrar de verificar:
 - Se a variável está em colour de geom_point;
 - No subtitle de labs.
 - No caso de família, trocar o y para S e x para Família.
-```
-ggplot(local, aes(x = S, y = shannon)) + 
-  geom_point(aes(size=spAbund, colour = Família))+ 
-  scale_size(range = c(.1, 18), name = "Abundância") +
-  geom_label_repel(aes(label = S), size=4, alpha= 0.7, #funciona no zoom
-                   box.padding   = 0.35, 
-                   point.padding = 0.75,
-                   segment.color = 'grey50') +
-  labs(title="Riqueza e diversidade", subtitle="Ordem", y="Diversidade",x="Riqueza", caption="",
-       color = "Empresas", size = "Abundância de registros") +
-  theme(axis.title = element_text(size = 18),
-        axis.text = element_text(size = 14)) + theme_classic() 
-#ggsave("Famíliamast.png",width = 9, height = 7, dpi = 600)
-```
+
 Um outro exemplo de gráfico é um de barras:
 ```
-ggplot(local, aes(Vegetação)) + 
+ggplot(local, aes(x = reorder(Família, S), y = S)) + 
+  geom_col(aes(weight = S, fill = Ordem), alpha = 0.7) + 
+  geom_point(aes(y = S, x = Família, size = spAbund, colour = Ordem)) +
+  geom_label(aes(y = S, x = Família, label = S), size=4, alpha= 1) +
+  labs(title="Riqueza e diversidade", subtitle="Diversidade", y="Riqueza", x="Família", caption="Dados primários",
+       fill = "Ordem", colour = "Ordem", size = "Abundância") +
+  scale_size_binned(range = c(.1, 18)) +
+  theme(axis.title = element_text(size = 18), 
+        axis.text = element_text(size = 14)) + 
+        coord_flip() + theme_classic() 
+#ggsave("famherp.png",width = 9, height = 7, dpi = 600)
+```
+Ou assim:
+```
+ggplot(local, aes(Família)) + 
   geom_bar(aes(weight = S, fill = shannon), alpha = 0.7) + 
-  geom_point(aes(y = S, x = Vegetação, size = spAbund)) +
-  geom_label(aes(y = S, x = Vegetação, label = S), size=4, alpha= 1) +
-  geom_label_repel(aes(y = S, x = Vegetação, label = spAbund), size=4, alpha= 1, colour = "red") +
-  labs(title="Riqueza e diversidade", subtitle="Diversidade", y="Riqueza", x="Uso e Ocupação do Solo", caption="Dados primários",
+  geom_point(aes(y = S, x = Família, size = spAbund)) +
+  geom_label(aes(y = S, x = Família, label = S), size=4, alpha= 1) +
+  geom_label_repel(aes(y = S, x = Família, label = spAbund), size=4, alpha= 1, colour = "red") +
+  labs(title="Riqueza e diversidade", subtitle="Diversidade", y="Riqueza", x="Família", caption="Dados primários",
        fill = "Diversidade", size = "Abundância") +
   scale_size(range = c(.1, 18), name = "Abundância") +
   scale_fill_continuous(type = "viridis") +
@@ -294,6 +294,21 @@ ggplot(Data, aes(x = Abundancia, y = Registro)) +
 #ggsave("registro.png",width = 9, height = 7, dpi = 600)
 
 ```        
+Um outr gráfico:
+```
+ggplot(local, aes(x = S, y = shannon)) + 
+  geom_point(aes(size=spAbund, colour = Família))+ 
+  scale_size(range = c(.1, 18), name = "Abundância") +
+  geom_label_repel(aes(label = S), size=4, alpha= 0.7, #funciona no zoom
+                   box.padding   = 0.35, 
+                   point.padding = 0.75,
+                   segment.color = 'grey50') +
+  labs(title="Riqueza e diversidade", subtitle="Ordem", y="Diversidade",x="Riqueza", caption="",
+       color = "Empresas", size = "Abundância de registros") +
+  theme(axis.title = element_text(size = 18),
+        axis.text = element_text(size = 14)) + theme_classic() 
+#ggsave("Famíliamast.png",width = 9, height = 7, dpi = 600)
+```
 ## 5. Cluster
 Fazer um cladogroma de similaridade também pode nos ajudar a desenvolver nosso relatório. Vamos selecionar o que relacionar, podendo ser:
 - Impacto;
