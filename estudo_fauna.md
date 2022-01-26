@@ -228,7 +228,7 @@ Agora vamos filtrar a tabela, ela pode ser por:
 - Empresa;
 - Localidade.
 ```
-local<-reshape2::dcast(p2, Família ~ Espécie, value.var = "Abundancia", fun = sum)
+local<-reshape2::dcast(p2, Vegetação ~ Espécie, value.var = "Abundancia", fun = sum)
 local=data.frame(local,row.names=1)
 ```
 E vamos aos cálculos;
@@ -264,17 +264,19 @@ ggplot(local, aes(x = reorder(Família, S), y = S)) +
         coord_flip() + theme_classic() 
 #ggsave("famherp.png",width = 9, height = 7, dpi = 600)
 ```
-Ou assim:
+Ou assim para impacto e uos:
 ```
-ggplot(local, aes(Família)) + 
+local<-reshape2::dcast(p2, Vegetação ~ Espécie, value.var = "Abundancia", fun = sum)
+local<-data.frame(S, spAbund, shannon,J, local)
+
+ggplot(local, aes(Vegetação)) + 
   geom_bar(aes(weight = S, fill = shannon), alpha = 0.7) + 
-  geom_point(aes(y = S, x = Família, size = spAbund)) +
-  geom_label(aes(y = S, x = Família, label = S), size=4, alpha= 1) +
-  geom_label_repel(aes(y = S, x = Família, label = spAbund), size=4, alpha= 1, colour = "red") +
-  labs(title="Riqueza e diversidade", subtitle="Diversidade", y="Riqueza", x="Família", caption="Dados primários",
+  geom_point(aes(y = S, x = Vegetação, size = spAbund)) +
+  geom_label(aes(y = S, x = Vegetação, label = S), size=4, alpha= 1) +
+  #geom_label_repel(aes(y = S, x = Vegetação, label = spAbund), size=4, alpha= 1, colour = "red") +
+  labs(title="Riqueza e diversidade", subtitle="Diversidade", y="Riqueza", x="Uso e ocupação do solo", caption="Dados primários",
        fill = "Diversidade", size = "Abundância") +
-  scale_size(range = c(.1, 18), name = "Abundância") +
-  scale_fill_continuous(type = "viridis") +
+  scale_size_binned(range = c(.1, 18)) +
   theme(axis.title = element_text(size = 18),
         axis.text = element_text(size = 14)) + 
         coord_flip() + theme_classic() 
@@ -294,7 +296,7 @@ ggplot(Data, aes(x = Abundancia, y = Registro)) +
 #ggsave("registro.png",width = 9, height = 7, dpi = 600)
 
 ```        
-Um outr gráfico:
+Um outro gráfico:
 ```
 ggplot(local, aes(x = S, y = shannon)) + 
   geom_point(aes(size=spAbund, colour = Família))+ 
@@ -361,7 +363,7 @@ ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
   scale_color_discrete(name = '') +
   theme(legend.direction = 'horizontal', legend.position = 'top') +
   theme_classic()
-#ggsave("12a.png",width = 6, height = 5, dpi = 600)
+#ggsave("pcariq.png",width = 6, height = 5, dpi = 600)
 ```
 E os resumos:
 ```
