@@ -14,7 +14,7 @@ Primeiro, vamos indicar as pastas corretas.
 - Prestar a atenção no diretório.
 ```
 getwd()
-setwd("/home/user/Área de Trabalho/Serviços/ES - Santa Leopoldina/2022_07_15_tres_pontes/R") 
+setwd("/home/user/Área de Trabalho/Serviços/ES - Serra/2022_03_10 Tencol/R") 
 ```
 Agora os principais pacotes utilizados:
 ```
@@ -23,13 +23,14 @@ if(!require(pacman, quietly = TRUE))(install.packages("pacman")) #agrupador de f
 pacman::p_load(magrittr,dplyr,reshape2) #magrittr para operações de pipe/dplyr para manipulador de dados
 pacman::p_load(ggplot2, ggrepel, graphics, lubridate) 
 pacman::p_load(vegan)  #vegan para estatística ecológica/graphics para os gráficos
-pacman::p_load(tidyverse,forcats,iNEXT,tidyr,tibble,CRAN,iNEXT) #hill e riqueza estimada
+pacman::p_load(forcats,iNEXT,tidyr,tibble,CRAN,iNEXT) #hill e riqueza estimada
+#pacman::p_load(tidyverse)
 ```
 Agora vamos adicionar a planilha. Algumas coisas devem ser notadas:
 - O caminho do arquivo para a tabela de dados brutos;
 ```
 pacman::p_load(openxlsx) 
-caminho.do.arquivo <- "/home/user/Área de Trabalho/Serviços/ES - Santa Leopoldina/i.santa_leopoldina.xlsx"
+caminho.do.arquivo <- "/home/user/Área de Trabalho/Serviços/ES - Serra/i.serra2.xlsx"
 planilhatotal <- read.xlsx(caminho.do.arquivo, #local do arquivo
                          sheet = 1, # em qual planilha estão os dados
                          colNames = T, # as colunas dos dados possuem nomes?
@@ -47,10 +48,15 @@ Agora escolher o que analisar e atribuir uma tabela chamada p2 parar as análise
 ```
 p2 <- planilhatotal
 
-p2 <- subset(p2, Empresa == "Três Pontes Granitos")
+p2 <- subset(p2, Empresa == "Três Pontes Granitos") #escolher uma
 p2 <- subset(p2, Ano == "2022")
 
+p2 <- subset(p2,Empresa!="Gran Primos") #excluir uma
+
+
 p2 <- subset(p2, Campanha == "3")
+
+pbase <- p2
 ```
 E ainda vamos atribuir as datas:
 ```
@@ -158,11 +164,6 @@ p2 <- subset(p2, Dados == "Primários")
 
 p2 <- subset(p2, Grupo == "Hepertofauna") 
 
-p3 <- p2 %>% 
-  select(Ano,Mês,Dia) %>% 
-  mutate(Data = make_date(Ano,Mês,Dia))
-Data <- data.frame(p3,p2)
-Data <- subset(Data, !is.na(Data))
 ```
 
 ## 2. Estimativa de riqueza
@@ -217,12 +218,6 @@ p2 <- Data
 p2 <- subset(p2, Origem == "Nativo") 
 p2 <- subset(p2, Dados == "Primários") 
 
-p3 <- p2 %>% 
-  select(Ano,Mês,Dia) %>% 
-  mutate(Data = make_date(Ano,Mês,Dia))
-Data <- data.frame(p3,p2)
-Data <- subset(Data, !is.na(Data))
-
 local<-reshape2::dcast(Data, Espécie ~ Grupo, value.var = "Abundância", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
 
@@ -230,7 +225,7 @@ local=data.frame(local, row.names=1)
 
 out <- iNEXT(local, q = 0,
              datatype = "abundance",
-             size = seq(0, 500, length.out=20))
+             size = seq(0, 100, length.out=20))
 
 R <- ggiNEXT(out, type = 1) +
   theme_bw() +
@@ -245,7 +240,7 @@ R <- ggiNEXT(out, type = 1) +
 R
 
 ggsave(width = 20, height = 10, 
-       device = "png", filename = "acum3", plot = R)
+       device = "png", filename = "Acum3", plot = R)
        
 ```
 
@@ -257,12 +252,7 @@ Aqui também podemos filtrar a tabela.
 - Mastofauna.
 Além de filtrar para apenas dados primários e espećies nativas.
 ```
-p2 <- planilhatotal
-
-p2 <- subset(p2, Empresa == "Três Pontes Granitos")
-p2 <- subset(p2, Ano == "2022")
- 
-p2 <- subset(p2, Localidade == "Descoberta") 
+p2 <- pbase
 p2 <- subset(p2, Grupo == "Mastofauna")
 
 p2 <- subset(p2, !is.na(Impacto))
@@ -313,13 +303,12 @@ ggplot(local, aes(x = reorder(Família, S), y = S)) +
 ```
 Um gráfico para tipo de registro:
 ```
-p2 <- planilhatotal
-p2 <- subset(p2, Empresa == "Três Pontes Granitos")
+p2 <- pbase
 
 ggplot(p2, aes(x = Abundância, y = Registro)) + 
   geom_point(aes(size=Abundância, colour = Tipo), alpha = 0.4)+ 
   scale_size(range = c(.1, 18), name = "Abundância") +
-  facet_wrap(.~Grupo, ncol=1) +
+  facet_wrap(.~Tipo, ncol=1) +
   labs(title="Tipo de registros", y="Tipo",x="Abundância de registros", caption="",
        color = "Registros", size = "Abundância de registros") +
   theme(axis.title = element_text(size = 18),
@@ -332,12 +321,7 @@ Um outro gráfico baseado na Série de Hill ajudam a entender a relação de dif
 - Impacto;
 - IOS.
 ```        
-p2 <- planilhatotal
-
-p2 <- subset(p2, Empresa == "Três Pontes Granitos")
-
-p2 <- subset(p2, Ano == "2022")
-p2 <- subset(p2, Localidade == "Descoberta") 
+p2 <- pbase
 
 p2 <- subset(p2, !is.na(Vegetação))
 
@@ -416,49 +400,32 @@ plot(hc, labels=local$ID)    # plot the dendrogram
 ## 6. PCA
 O PCA ou Análise de Componentes Principais ou PCA (Principal Component Analysis) é uma técnica de análise multivariada que pode ser usada para analisar inter-relações entre um grande número de variáveis e explicar essas variáveis em termos de suas dimensões inerentes (Componentes). O objetivo é encontrar um meio de condensar a informação contida em várias variáveis originais em um conjunto menor de variáveis estatísticas (componentes) com uma perda mínima de informação.
 Primeiro os pacotes:
+## 6. PCA
+O PCA ou Análise de Componentes Principais ou PCA (Principal Component Analysis) é uma técnica de análise multivariada que pode ser usada para analisar inter-relações entre um grande número de variáveis e explicar essas variáveis em termos de suas dimensões inerentes (Componentes). O objetivo é encontrar um meio de condensar a informação contida em várias variáveis originais em um conjunto menor de variáveis estatísticas (componentes) com uma perda mínima de informação.
+Primeiro os pacotes:
 ```
-pacman::p_load(psych) 
-install_github("vqv/ggbiplot")
-library("devtools") 
-library("ggbiplot") 
-library("ggrepel") 
+pacman::p_load(ggfortify, cluster)
 
-install.packages("devtools", repo="https://github.com/hadley/devtools")
-install.packages("devtools", repo="http://cran.us.r-project.org")
-library(devtools)
+p2 <- planilhatotal
 
+#p2 <- subset(p2, Grupo == "Mastofauna")
 
-```
-Agra vamos selecionar os dados.Pode ser:
-- Classe;
-- Vegetação;
-- Localidade;
-- Empresa.
-Outra coisa a se atentar. 
-- Riqueza;
-- Abundância - add  , value.var = "Abundância", fun.aggregate = sum).
-```
-local<-reshape2::dcast(p2, Vegetação ~ Grupo, value.var = "Abundância", fun.aggregate = sum)  #sem abudância para ser a riqueza/diversidade
-local[ , which(apply(local, 2, var) != 0)]
-local <- as.matrix(local[ ,-1])
-grupo<-reshape2::dcast(unique(p2), Vegetação ~ Grupo) #, value.var = "Abundância", fun.aggregate = sum)
-#grupo2<-reshape2::dcast(p2, País ~ Gênero, value.var = "Abundância", fun = length)
-```
-Agora o gráficos:
-Obs.: lembrar de ativar ggbplot  ggrepel
-```
-wine.pca <- prcomp(local, scale. = TRUE)
-ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
-         #groups = grupo$Fator, 
-         ellipse = TRUE, circle = TRUE) +
-  geom_label_repel(aes(label = grupo$Vegetação), size=4, alpha= 1, 
-                   box.padding   = 0.35, 
-                   point.padding = 0.75,
-                   segment.color = 'grey50') +
-  scale_color_discrete(name = '') +
-  theme(legend.direction = 'horizontal', legend.position = 'top') +
-  theme_classic()
-#ggsave("pcrriq.png",width = 6, height = 5, dpi = 600)
+local<-reshape2::dcast(p2, Família ~ Impacto, value.var = "Abundancia", fun.aggregate = NULL) #sum ou NULL
+local=data.frame(local, row.names=1)
+
+pca_res <- prcomp(local, scale. = TRUE)
+#autoplot(pca_res)
+
+local<-reshape2::dcast(p2, Família + Ordem ~ Impacto, value.var = "Abundancia", fun.aggregate = NULL) #sum ou NULL
+pca <-autoplot(pca_res, data = local, colour = 'Ordem', label = TRUE, label.size = 4, 
+frame = TRUE, frame.type = NULL, frame.color = 'Ordem', #ou frame.type = 't'
+         loadings = TRUE, loadings.colour = 'blue',loadings.label = TRUE, loadings.label.size = 3) +                
+         theme_classic() 
+pca
+
+ggsave(path = "/home/user/Área de Trabalho/Música", width = 20, height = 10, 
+       device = "png", filename = "PCAriq", plot = pca)
+
 ```
 E os resumos:
 ```
