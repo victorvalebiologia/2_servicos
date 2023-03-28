@@ -14,7 +14,7 @@ Primeiro, vamos indicar as pastas corretas.
 - Prestar a atenção no diretório.
 ```
 getwd()
-setwd("/home/user/Área de Trabalho/Serviços/ES - Serra/2022_03_10 Tencol/R") 
+setwd("/home/user/Área de Trabalho/Serviços/MG - Porteirinhas/2022_10_13_nucleo_ambiental/R") 
 ```
 Agora os principais pacotes utilizados:
 ```
@@ -23,40 +23,38 @@ if(!require(pacman, quietly = TRUE))(install.packages("pacman")) #agrupador de f
 pacman::p_load(magrittr,dplyr,reshape2) #magrittr para operações de pipe/dplyr para manipulador de dados
 pacman::p_load(ggplot2, ggrepel, graphics, lubridate) 
 pacman::p_load(vegan)  #vegan para estatística ecológica/graphics para os gráficos
-pacman::p_load(forcats,iNEXT,tidyr,tibble,CRAN,iNEXT) #hill e riqueza estimada
+pacman::p_load(forcats,iNEXT,tidyr,tibble,iNEXT) #hill,CRAN e riqueza estimada
 #pacman::p_load(tidyverse)
 ```
 Agora vamos adicionar a planilha. Algumas coisas devem ser notadas:
 - O caminho do arquivo para a tabela de dados brutos;
 ```
 pacman::p_load(openxlsx) 
-caminho.do.arquivo <- "/home/user/Área de Trabalho/Serviços/ES - Serra/i.serra2.xlsx"
+caminho.do.arquivo <- "/home/user/Área de Trabalho/Serviços/2021_06_07_minas.xlsx"
 planilhatotal <- read.xlsx(caminho.do.arquivo, #local do arquivo
                          sheet = 1, # em qual planilha estão os dados
                          colNames = T, # as colunas dos dados possuem nomes?
                          na.strings = "NA") # como estão identificados os dados omissos?
-head(planilhatotal)
+#head(planilhatotal)
 ```
 Agora vamos filtrar a tabela. Primeiro tirar os dias não amostrados e espécie exótica.
 ```
 planilhatotal <- subset(planilhatotal, !is.na(Dia))
 planilhatotal <- subset(planilhatotal, !is.na(Mês))
 planilhatotal <- subset(planilhatotal, !is.na(Ano))
-planilhatotal <- subset(planilhatotal, !is.na(Abundância)) 
+planilhatotal <- subset(planilhatotal, !is.na(Abundancia)) 
 ```
 Agora escolher o que analisar e atribuir uma tabela chamada p2 parar as análises:
 ```
 p2 <- planilhatotal
+p2 <- subset(p2, Origem == "Nativo")
+p2 <- subset(p2, Dados == "Primários") 
 
-p2 <- subset(p2, Empresa == "Três Pontes Granitos") #escolher uma
-p2 <- subset(p2, Ano == "2022")
+p2 <- subset(p2, Empresa == "Todos os Santos") #escolher uma
+#p2 <- subset(p2, Ano == "2022")
 
-p2 <- subset(p2,Empresa!="Gran Primos") #excluir uma
-
-
-p2 <- subset(p2, Campanha == "3")
-
-pbase <- p2
+#p2 <- subset(p2,Empresa!="Gran Primos") #excluir uma
+#p2 <- subset(p2, Campanha == "3")
 ```
 E ainda vamos atribuir as datas:
 ```
@@ -65,6 +63,8 @@ p3 <- p2 %>%
   mutate(Data = make_date(Ano,Mês,Dia))
 Data <- data.frame(p3,p2)
 Data <- subset(Data, !is.na(Data))
+
+pbase <- Data
 ```
 Vamos ver:
 `ts.plot(Data$Data)`
@@ -78,14 +78,13 @@ Vamos cacular os principais índices de dievrsidade aqui. Primeiro vamos selecio
 Além de filtrar para apenas dados primários e espećies nativas.
 ```
 p2 <- Data
-p2 <- subset(p2, Origem == "Nativo")
-p2 <- subset(p2, Dados == "Primários") 
 
-p2 <- subset(p2, Grupo == "Mastofauna") 
+p2 <- subset(p2, Grupo == "Herpetofauna") 
+#p2 <- subset(p2,Grupo!="Herpetofauna") 
 ```
 Agora a tabela para trabalhar.
 ```
-acum<-reshape2::dcast(p2, Data ~ Espécie, value.var = "Abundância", fun.aggregate = sum)
+acum<-reshape2::dcast(p2, Data ~ Espécie, value.var = "Abundancia", fun.aggregate = sum)
 acum=data.frame(acum, row.names=1)
 ```
 E vamos gerar a curva:
@@ -97,7 +96,7 @@ plot(acumplot,ci.type="poly",col="black",lwd=2,ci.lty=0,ci.col="lightgrey",ylab=
 ```
 Podemos fazer alguns tipos de gráficos de acumulação, veremos a seguir em três etapas, primeiro selecionando a tabela.
 ```
-acum<-reshape2::dcast(p2, Data ~ Espécie, value.var = "Abundância", fun = sum)
+acum<-reshape2::dcast(p2, Data ~ Espécie, value.var = "Abundancia", fun = sum)
 acum=data.frame(acum, row.names=1)
 ```
 Segundo os cálculos
@@ -119,7 +118,7 @@ plot(sp4, ci.type="poly", col="black", lwd=2, ci.lty=0, ci.col="lightblue",xlab=
 par(mfrow=c(1,1)) #compilado de curvas
 #dev.off()
 ```
-Podemos focar também a curva do coletor e adicionar a abundância por dia. Primeiro vamos aos cálculos de diversidade e abundância.
+Podemos focar também a curva do coletor e adicionar a Abundancia por dia. Primeiro vamos aos cálculos de diversidade e Abundancia.
 ```
 sp4<-specaccum(acum,method="collector")
 shannon<-diversity(acum)
@@ -127,7 +126,7 @@ spAbund<-rowSums(acum)
 ```
 Agora preparamos a tabela:
 ```
-acum<-reshape2::dcast(Data, Data ~ Espécie, value.var = "Abundância", fun = sum)
+acum<-reshape2::dcast(Data, Data ~ Espécie, value.var = "Abundancia", fun = sum)
 p3<-data.frame(shannon,spAbund,sp4$sites,sp4$richness,acum)
 ```
 E plotamos:
@@ -139,10 +138,10 @@ ggplot(p3, aes(x = Data, y = sp4.richness)) +
                    box.padding   = 0.35, 
                    point.padding = 0.75,
                    segment.color = 'grey50') +
-  scale_size(range = c(.1, 24), name="Abundância de registros") +
+  scale_size(range = c(.1, 24), name="Abundancia de registros") +
   #geom_text(aes(label = a$sp4.richness),col = 'black',size = 5) +
   labs(title="Curva do coletor", subtitle="Total", y="Riqueza",x="Data", caption="",
-       color = "Diversidade", size = "Abundância de registros") +
+       color = "Diversidade", size = "Abundancia de registros") +
   theme(axis.title = element_text(size = 18),
         axis.text = element_text(size = 14)) + theme_classic() 
 #ggsave("Acum2.png",width = 14, height = 6, dpi = 300)
@@ -158,9 +157,7 @@ Vamos também estimar a riqueza. Vamos selecionar a tabela. Podem ter duas vari�
 Primeiro vamos foltrar e atribuir as datas:
 
 ```
-p2 <- Data
-p2 <- subset(p2, Origem == "Nativo") 
-p2 <- subset(p2, Dados == "Primários") 
+p2 <- pbase
 
 p2 <- subset(p2, Grupo == "Hepertofauna") 
 
@@ -175,7 +172,7 @@ Vamos cacular os principais índices de dievrsidade aqui. Primeiro vamos selecio
 Além de filtrar para apenas dados primários e espećies nativas.
 
 ```
-p3<-reshape2::dcast(Data, Data ~ Espécie, value.var = "Abundância", fun = sum)
+p3<-reshape2::dcast(p2, Data ~ Espécie, value.var = "Abundancia", fun = sum)
 p3=data.frame(p3, row.names=1)
 ```
 Agora vamos estimar a riqueza considerando a localidade toda:
@@ -195,16 +192,16 @@ Também podemos separar pelas varíaveis seguintes:
 - Classe.
 
 Precisamos fazer duas tabelas. 
-- Uma indicando a abundância de espécies por dia, denominada de p3;
+- Uma indicando a Abundancia de espécies por dia, denominada de p3;
 - Uma indicando a variável, denominada p4.
 - Lembrar de conferir a variável
 ```
 #p3 <- subset(Data, Empresa == "XXX")
 
-p3<-reshape2::dcast(Data, Data + Grupo ~ Espécie, value.var = "Abundância", fun = sum)
+p3<-reshape2::dcast(p2, Data + Grupo ~ Espécie, value.var = "Abundancia", fun = sum)
 excluir <- c("Data", "Grupo")
 p3 <- p3[,!(names(p3)%in% excluir)]
-p4<-reshape2::dcast(Data, Data + Grupo ~ Classe, value.var = "Abundância", fun = sum)
+p4<-reshape2::dcast(Data, Data + Grupo ~ Classe, value.var = "Abundancia", fun = sum)
 ```
 Agora a estimativa de riqueza por localidade.
 ```
@@ -214,18 +211,16 @@ boxplot(pool$chao)
 ```
 Agora um gráfico unificado.
 ```
-p2 <- Data
-p2 <- subset(p2, Origem == "Nativo") 
-p2 <- subset(p2, Dados == "Primários") 
+p2 <- pbase
 
-local<-reshape2::dcast(Data, Espécie ~ Grupo, value.var = "Abundância", fun.aggregate = sum)
+local<-reshape2::dcast(p2, Espécie ~ Grupo, value.var = "Abundancia", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
 
 # Mude o q para 1 para comparar a diversidade de Shannon e para 2 para Simpson
 
 out <- iNEXT(local, q = 0,
              datatype = "abundance",
-             size = seq(0, 100, length.out=20))
+             size = seq(0, 300, length.out=20))
 
 R <- ggiNEXT(out, type = 1) +
   theme_bw() +
@@ -255,7 +250,7 @@ Além de filtrar para apenas dados primários e espećies nativas.
 p2 <- pbase
 p2 <- subset(p2, Grupo == "Mastofauna")
 
-p2 <- subset(p2, !is.na(Impacto))
+#p2 <- subset(p2, !is.na(Impacto))
 
 ```
 Agora vamos filtrar a tabela, ela pode ser por:
@@ -265,7 +260,7 @@ Agora vamos filtrar a tabela, ela pode ser por:
 - Empresa;
 - Localidade.
 ```
-local<-reshape2::dcast(p2, Família ~ Espécie, value.var = "Abundância", fun = sum)
+local<-reshape2::dcast(p2, Família ~ Espécie, value.var = "Abundancia", fun = sum)
 local=data.frame(local,row.names=1)
 ```
 E vamos aos cálculos;
@@ -279,7 +274,7 @@ invsimp <- diversity(local, "inv")
 ```
 E vamos plotar em gráfico, mas primeiro a tabela.
 ```
-local<-reshape2::dcast(p2, Família + Ordem ~ Espécie, value.var = "Abundância", fun = sum)
+local<-reshape2::dcast(p2, Família + Ordem ~ Espécie, value.var = "Abundancia", fun = sum)
 local<-data.frame(S, spAbund, shannon,J, local)
 ```
 E agora o gráfico. Lembrar de verificar:
@@ -291,29 +286,29 @@ Um outro exemplo de gráfico é um de barras:
 ```
 ggplot(local, aes(x = reorder(Família, S), y = S)) + 
   geom_col(aes(weight = S, fill = Ordem), alpha = 0.7) + 
-  geom_point(aes(y = S, x = Família, size = spAbund, colour = Ordem)) +
+  geom_point(aes(y = S, x = Família, size = spAbund, colour = Ordem), alpha = 0.7) +
   geom_label(aes(y = S, x = Família, label = S), size=4, alpha= 1) +
   labs(title="Riqueza e diversidade", subtitle="Diversidade", y="Riqueza", x="Família", caption="Dados primários",
-       fill = "Ordem", colour = "Ordem", size = "Abundância") +
+       fill = "Ordem", colour = "Ordem", size = "Abundancia") +
   scale_size_binned(range = c(.1, 18)) +
   theme(axis.title = element_text(size = 18), 
         axis.text = element_text(size = 14)) + 
         coord_flip() + theme_classic() 
-#ggsave("fammas.png",width = 10, height = 8, dpi = 600)
+#ggsave("famma.png",width = 10, height = 8, dpi = 600)
 ```
 Um gráfico para tipo de registro:
 ```
 p2 <- pbase
 
-ggplot(p2, aes(x = Abundância, y = Registro)) + 
-  geom_point(aes(size=Abundância, colour = Tipo), alpha = 0.4)+ 
-  scale_size(range = c(.1, 18), name = "Abundância") +
-  facet_wrap(.~Tipo, ncol=1) +
-  labs(title="Tipo de registros", y="Tipo",x="Abundância de registros", caption="",
-       color = "Registros", size = "Abundância de registros") +
+ggplot(p2, aes(x = Abundancia, y = Registro)) + 
+  geom_point(aes(size=Abundancia, colour = Grupo, shape = Grupo), alpha = 0.6)+ 
+  scale_size(range = c(.1, 18), name = "Abundancia") +
+  facet_grid(Tipo~., scales = "free_y", space = "free_y") + 
+  labs(title="Tipo de registros", y="Tipo",x="Abundancia de registros", caption="",
+       color = "Grupo", size = "Abundancia de registros") +
   theme(axis.title = element_text(size = 18),
         axis.text = element_text(size = 14)) + theme_classic() 
-#ggsave("registro.png",width = 9, height = 7, dpi = 600)
+#ggsave("registr.png",width = 9, height = 7, dpi = 600)
 
 ```        
 Um outro gráfico baseado na Série de Hill ajudam a entender a relação de diferentes grupos nos índices de diversidade:
@@ -323,9 +318,9 @@ Um outro gráfico baseado na Série de Hill ajudam a entender a relação de dif
 ```        
 p2 <- pbase
 
-p2 <- subset(p2, !is.na(Vegetação))
+p3 <- subset(p2, !is.na(Vegetação))
 
-local<-reshape2::dcast(p2, Vegetação ~ Espécie, value.var = "Abundância", fun.aggregate = sum)
+local<-reshape2::dcast(p3, Vegetação ~ Espécie, value.var = "Abundancia", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
 
 R <- renyi(local,hill = TRUE)
@@ -353,7 +348,7 @@ ggsave(, width = 20, height = 10,
 
 Ou assim para Vegetação e uos:
 ```
-local<-reshape2::dcast(p2, Vegetação ~ Espécie, value.var = "Abundância", fun = sum)
+local<-reshape2::dcast(p2, Vegetação ~ Espécie, value.var = "Abundancia", fun = sum)
 local<-data.frame(S, spAbund, shannon,J, local)
 
 ggplot(local, aes(Vegetação)) + 
@@ -362,7 +357,7 @@ ggplot(local, aes(Vegetação)) +
   geom_label(aes(y = S, x = Vegetação, label = S), size=4, alpha= 1) +
   #geom_label_repel(aes(y = S, x = Vegetação, label = spAbund), size=4, alpha= 1, colour = "red") +
   labs(title="Riqueza e diversidade", subtitle="Diversidade", y="Riqueza", x="Uso e ocupação do solo", caption="Dados primários",
-       fill = "Diversidade", size = "Abundância") +
+       fill = "Diversidade", size = "Abundancia") +
   scale_size_binned(range = c(.1, 18)) +
   theme(axis.title = element_text(size = 18),
         axis.text = element_text(size = 14)) + 
@@ -373,13 +368,13 @@ ggplot(local, aes(Vegetação)) +
 ```
 ggplot(local, aes(x = S, y = shannon)) + 
   geom_point(aes(size=spAbund, colour = Família))+ 
-  scale_size(range = c(.1, 18), name = "Abundância") +
+  scale_size(range = c(.1, 18), name = "Abundancia") +
   geom_label_repel(aes(label = S), size=4, alpha= 0.7, #funciona no zoom
                    box.padding   = 0.35, 
                    point.padding = 0.75,
                    segment.color = 'grey50') +
   labs(title="Riqueza e diversidade", subtitle="Ordem", y="Diversidade",x="Riqueza", caption="",
-       color = "Empresas", size = "Abundância de registros") +
+       color = "Empresas", size = "Abundancia de registros") +
   theme(axis.title = element_text(size = 18),
         axis.text = element_text(size = 14)) + theme_classic() 
 #ggsave("Famíliamast.png",width = 9, height = 7, dpi = 600)
@@ -391,40 +386,38 @@ Fazer um cladogroma de similaridade também pode nos ajudar a desenvolver nosso 
 - Epresa.
 ```
 pacman::p_load("ade4")
-local<-reshape2::dcast(planilhatotal, Vegetação ~ Espécie, value.var = "Abundância", fun = sum)
+local<-reshape2::dcast(planilhatotal, Vegetação ~ Espécie, value.var = "Abundancia", fun = sum)
 local=data.frame(local, row.names=1)
 d <- dist.binary(local, method = 1, diag = FALSE, upper = FALSE) #method 1 is Jaccard index (1901) S3 coefficient of Gower & Legendre
 hc <- hclust(d)               # apply hierarchical clustering 
 plot(hc, labels=local$ID)    # plot the dendrogram
 ```
-## 6. PCA
-O PCA ou Análise de Componentes Principais ou PCA (Principal Component Analysis) é uma técnica de análise multivariada que pode ser usada para analisar inter-relações entre um grande número de variáveis e explicar essas variáveis em termos de suas dimensões inerentes (Componentes). O objetivo é encontrar um meio de condensar a informação contida em várias variáveis originais em um conjunto menor de variáveis estatísticas (componentes) com uma perda mínima de informação.
-Primeiro os pacotes:
+
 ## 6. PCA
 O PCA ou Análise de Componentes Principais ou PCA (Principal Component Analysis) é uma técnica de análise multivariada que pode ser usada para analisar inter-relações entre um grande número de variáveis e explicar essas variáveis em termos de suas dimensões inerentes (Componentes). O objetivo é encontrar um meio de condensar a informação contida em várias variáveis originais em um conjunto menor de variáveis estatísticas (componentes) com uma perda mínima de informação.
 Primeiro os pacotes:
 ```
 pacman::p_load(ggfortify, cluster)
 
-p2 <- planilhatotal
+p2 <- pbase
 
 #p2 <- subset(p2, Grupo == "Mastofauna")
 
-local<-reshape2::dcast(p2, Família ~ Impacto, value.var = "Abundancia", fun.aggregate = NULL) #sum ou NULL
+local<-reshape2::dcast(p2, Ordem ~ Vegetação, value.var = "Abundancia", fun.aggregate = NULL) #sum ou NULL
 local=data.frame(local, row.names=1)
 
 pca_res <- prcomp(local, scale. = TRUE)
 #autoplot(pca_res)
 
-local<-reshape2::dcast(p2, Família + Ordem ~ Impacto, value.var = "Abundancia", fun.aggregate = NULL) #sum ou NULL
-pca <-autoplot(pca_res, data = local, colour = 'Ordem', label = TRUE, label.size = 4, 
-frame = TRUE, frame.type = NULL, frame.color = 'Ordem', #ou frame.type = 't'
+local<-reshape2::dcast(p2, Ordem + Grupo ~ Vegetação, value.var = "Abundancia", fun.aggregate = sum) #sum ou NULL
+pca <-autoplot(pca_res, data = local, colour = 'Grupo', label = TRUE, label.size = 4, 
+frame = TRUE, frame.type = NULL, frame.color = 'Grupo', #ou frame.type = 't'
          loadings = TRUE, loadings.colour = 'blue',loadings.label = TRUE, loadings.label.size = 3) +                
          theme_classic() 
 pca
 
-ggsave(path = "/home/user/Área de Trabalho/Música", width = 20, height = 10, 
-       device = "png", filename = "PCAriq", plot = pca)
+ggsave(width = 20, height = 10, device = "png", filename = "PCAriq", plot = pca)
+#path = "/home/user/Área de Trabalho/Serviços/ES - Rio Bananal/2021_03_03_Grancol/R"
 
 ```
 E os resumos:
@@ -446,7 +439,7 @@ Podemo relacionar:
 
 Vamos selecionar:
 ```
-local<-reshape2::dcast(Data, Espécie ~ Data, value.var = "Abundância", fun = sum)
+local<-reshape2::dcast(p2, Espécie ~ Vegetação, value.var = "Abundancia", fun = sum)
 local=data.frame(local, row.names=1)
 ```
 E vamos plotar:
@@ -475,7 +468,7 @@ Podemo relacionar:
 
 Vamos com a tabela espécie por localidade:
 ```
-local<-reshape2::dcast(Data, Espécie ~ Data, value.var = "Abundância", fun = sum)
+local<-reshape2::dcast(p2, Espécie ~ Vegetação, value.var = "Abundancia", fun = sum)
 ```
 
 Agora calacular a metacomunidade:
