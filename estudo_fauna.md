@@ -14,7 +14,7 @@ Primeiro, vamos indicar as pastas corretas.
 - Prestar a atenção no diretório.
 ```
 getwd()
-setwd("/home/user/Área de Trabalho/Serviços/MG - Porteirinhas/2022_10_13_nucleo_ambiental/R") 
+setwd("/home/user/Área de Trabalho/Serviços/ES - Guarapari/2023_02_ecorural/R") 
 ```
 Agora os principais pacotes utilizados:
 ```
@@ -30,7 +30,7 @@ Agora vamos adicionar a planilha. Algumas coisas devem ser notadas:
 - O caminho do arquivo para a tabela de dados brutos;
 ```
 pacman::p_load(openxlsx) 
-caminho.do.arquivo <- "/home/user/Área de Trabalho/Serviços/2021_06_07_minas.xlsx"
+caminho.do.arquivo <- "/home/user/Área de Trabalho/Serviços/ES - Guarapari/2021_05_13_guarapari.xlsx"
 planilhatotal <- read.xlsx(caminho.do.arquivo, #local do arquivo
                          sheet = 1, # em qual planilha estão os dados
                          colNames = T, # as colunas dos dados possuem nomes?
@@ -50,7 +50,7 @@ p2 <- planilhatotal
 p2 <- subset(p2, Origem == "Nativo")
 p2 <- subset(p2, Dados == "Primários") 
 
-p2 <- subset(p2, Empresa == "Todos os Santos") #escolher uma
+p2 <- subset(p2, Empresa == "Ecorural") #escolher uma
 #p2 <- subset(p2, Ano == "2022")
 
 #p2 <- subset(p2,Empresa!="Gran Primos") #excluir uma
@@ -159,7 +159,7 @@ Primeiro vamos foltrar e atribuir as datas:
 ```
 p2 <- pbase
 
-p2 <- subset(p2, Grupo == "Hepertofauna") 
+#p2 <- subset(p2, Grupo == "Hepertofauna") 
 
 ```
 
@@ -220,7 +220,7 @@ local=data.frame(local, row.names=1)
 
 out <- iNEXT(local, q = 0,
              datatype = "abundance",
-             size = seq(0, 300, length.out=20))
+             size = seq(0, 500, length.out=20))
 
 R <- ggiNEXT(out, type = 1) +
   theme_bw() +
@@ -286,23 +286,42 @@ Um outro exemplo de gráfico é um de barras:
 ```
 ggplot(local, aes(x = reorder(Família, S), y = S)) + 
   geom_col(aes(weight = S, fill = Ordem), alpha = 0.7) + 
-  geom_point(aes(y = S, x = Família, size = spAbund, colour = Ordem), alpha = 0.7) +
+  #geom_point(aes(y = S, x = Família, size = spAbund, colour = Ordem), alpha = 0.7) +
   geom_label(aes(y = S, x = Família, label = S), size=4, alpha= 1) +
   labs(title="Riqueza e diversidade", subtitle="Diversidade", y="Riqueza", x="Família", caption="Dados primários",
-       fill = "Ordem", colour = "Ordem", size = "Abundancia") +
+       fill = "Ordem", colour = "Ordem", size = "Riqueza") +
   scale_size_binned(range = c(.1, 18)) +
   theme(axis.title = element_text(size = 18), 
         axis.text = element_text(size = 14)) + 
         coord_flip() + theme_classic() 
 #ggsave("famma.png",width = 10, height = 8, dpi = 600)
 ```
+Agora para abundância
+```
+ggplot(local, aes(x = reorder(Família, spAbund), y = spAbund)) + 
+  geom_col(aes(weight = spAbund, fill = Ordem), alpha = 0.7) + 
+  #geom_point(aes(y = spAbund, x = Família, size = S, colour = Ordem), alpha = 0.7) +
+  geom_label(aes(y = spAbund, x = Família, label = spAbund), size=4, alpha= 1) +
+  labs(title="Riqueza e diversidade", subtitle="Diversidade", y="Abundância", x="Família", caption="Dados primários",
+       fill = "Ordem", colour = "Ordem", size = "Riqueza") +
+  scale_size_binned(range = c(.1, 18)) +
+  theme(axis.title = element_text(size = 18), 
+        axis.text = element_text(size = 14)) + 
+        coord_flip() + theme_classic() 
+#ggsave("famma2.png",width = 10, height = 8, dpi = 600)
+
+
+```
+
+
+
 Um gráfico para tipo de registro:
 ```
 p2 <- pbase
 
 ggplot(p2, aes(x = Abundancia, y = Registro)) + 
   geom_point(aes(size=Abundancia, colour = Grupo, shape = Grupo), alpha = 0.6)+ 
-  scale_size(range = c(.1, 18), name = "Abundancia") +
+  scale_size(range = c(.1, 18), name = "Abundância") +
   facet_grid(Tipo~., scales = "free_y", space = "free_y") + 
   labs(title="Tipo de registros", y="Tipo",x="Abundancia de registros", caption="",
        color = "Grupo", size = "Abundancia de registros") +
@@ -318,9 +337,9 @@ Um outro gráfico baseado na Série de Hill ajudam a entender a relação de dif
 ```        
 p2 <- pbase
 
-p3 <- subset(p2, !is.na(Vegetação))
+p3 <- subset(p2, !is.na(Impacto))
 
-local<-reshape2::dcast(p3, Vegetação ~ Espécie, value.var = "Abundancia", fun.aggregate = sum)
+local<-reshape2::dcast(p3, Impacto ~ Espécie, value.var = "Abundancia", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
 
 R <- renyi(local,hill = TRUE)
@@ -343,7 +362,7 @@ R <- R %>%
 R  
 
 ggsave(, width = 20, height = 10, 
-       device = "png", filename = "veg", plot = R)
+       device = "png", filename = "imp", plot = R)
 ```        
 
 Ou assim para Vegetação e uos:
@@ -411,7 +430,7 @@ pca_res <- prcomp(local, scale. = TRUE)
 
 local<-reshape2::dcast(p2, Ordem + Grupo ~ Vegetação, value.var = "Abundancia", fun.aggregate = sum) #sum ou NULL
 pca <-autoplot(pca_res, data = local, colour = 'Grupo', label = TRUE, label.size = 4, 
-frame = TRUE, frame.type = NULL, frame.color = 'Grupo', #ou frame.type = 't'
+         frame = TRUE, frame.type = NULL, frame.color = 'Grupo', #ou frame.type = 't'
          loadings = TRUE, loadings.colour = 'blue',loadings.label = TRUE, loadings.label.size = 3) +                
          theme_classic() 
 pca
