@@ -7,30 +7,34 @@ Repositório para trelatório técnicos de estudo de fauna para uso pessoal. O i
 - 4. Diveridade;
 - 5. Clueter;
 - 6. PCA;
-- 7. Correlação.
+- 7. Correlação;
+- 8. Dados secundários
 
 ## 1. Início
 Primeiro, vamos indicar as pastas corretas.
 - Prestar a atenção no diretório.
 ```
 getwd()
-setwd("/home/user/Área de Trabalho/Serviços/ES - Guarapari/2023_02_ecorural/R") 
+setwd("/home/user/Área de Trabalho/Serviços/ES - Colatina/2024_4_18_granicap/R") 
 ```
 Agora os principais pacotes utilizados:
 ```
 if(!require(pacman, quietly = TRUE))(install.packages("pacman")) #agrupador de funções
 #if(!require(devtools, quietly = TRUE))(install.packages("devtools")) #agrupador de dados
 pacman::p_load(magrittr,dplyr,reshape2) #magrittr para operações de pipe/dplyr para manipulador de dados
-pacman::p_load(ggplot2, ggrepel, graphics, lubridate) 
+pacman::p_load(ggplot2, ggrepel, graphics, lubridate, tidyquant, stringr) 
 pacman::p_load(vegan)  #vegan para estatística ecológica/graphics para os gráficos
 pacman::p_load(forcats,iNEXT,tidyr,tibble,iNEXT) #hill,CRAN e riqueza estimada
 #pacman::p_load(tidyverse)
+#update.packages(ask = FALSE, checkBuilt = TRUE)
+
+
 ```
 Agora vamos adicionar a planilha. Algumas coisas devem ser notadas:
 - O caminho do arquivo para a tabela de dados brutos;
 ```
 pacman::p_load(openxlsx) 
-caminho.do.arquivo <- "/home/user/Área de Trabalho/Serviços/ES - Guarapari/2021_05_13_guarapari.xlsx"
+caminho.do.arquivo <- "/home/user/Área de Trabalho/Serviços/2_fauna.xlsx"
 planilhatotal <- read.xlsx(caminho.do.arquivo, #local do arquivo
                          sheet = 1, # em qual planilha estão os dados
                          colNames = T, # as colunas dos dados possuem nomes?
@@ -39,19 +43,22 @@ planilhatotal <- read.xlsx(caminho.do.arquivo, #local do arquivo
 ```
 Agora vamos filtrar a tabela. Primeiro tirar os dias não amostrados e espécie exótica.
 ```
-planilhatotal <- subset(planilhatotal, !is.na(Dia))
-planilhatotal <- subset(planilhatotal, !is.na(Mês))
-planilhatotal <- subset(planilhatotal, !is.na(Ano))
-planilhatotal <- subset(planilhatotal, !is.na(Abundancia)) 
+p1 <- subset(planilhatotal, !is.na(Dia))
+p1 <- subset(p1, !is.na(Mês))
+p1 <- subset(p1, !is.na(Ano))
+p1 <- subset(p1, !is.na(Abundancia)) 
+p1 <- subset(p1, !is.na(Espécie)
 ```
 Agora escolher o que analisar e atribuir uma tabela chamada p2 parar as análises:
 ```
-p2 <- planilhatotal
-p2 <- subset(p2, Origem == "Nativo")
+p2 <- subset(p1, Origem == "Nativo")
 p2 <- subset(p2, Dados == "Primários") 
+psec <- p2
 
-p2 <- subset(p2, Empresa == "Ecorural") #escolher uma
-#p2 <- subset(p2, Ano == "2022")
+p2 <- subset(p2, Município == "Colatina") #escolher uma
+p2 <- subset(p2, Macro == "Baunilha")
+#p2 <- subset(p2, R == "R")
+#p2 <- subset(p2, Grupo == "Mastofauna")
 
 #p2 <- subset(p2,Empresa!="Gran Primos") #excluir uma
 #p2 <- subset(p2, Campanha == "3")
@@ -79,7 +86,7 @@ Além de filtrar para apenas dados primários e espećies nativas.
 ```
 p2 <- Data
 
-p2 <- subset(p2, Grupo == "Herpetofauna") 
+#p2 <- subset(p2, Grupo == "Herpetofauna") 
 #p2 <- subset(p2,Grupo!="Herpetofauna") 
 ```
 Agora a tabela para trabalhar.
@@ -92,7 +99,7 @@ E vamos gerar a curva:
 acumplot<-specaccum(acum) #dados de acumulação
 plot(acumplot) #curva simples
 plot(acumplot,ci.type="poly",col="black",lwd=2,ci.lty=0,ci.col="lightgrey",ylab="Riqueza",
-     xlab="Dias de amostragem",main="Curva de acumulação de registros",las=1,font=1.5,font.lab=1.5,cex.lab=1,cex.axis=1) #curva clássica
+     xlab="Dias de amostragem",main="Curva de acumulação de registros para herpetofauna",las=1,font=1.5,font.lab=1.5,cex.lab=1,cex.axis=1) #curva clássica
 ```
 Podemos fazer alguns tipos de gráficos de acumulação, veremos a seguir em três etapas, primeiro selecionando a tabela.
 ```
@@ -134,17 +141,20 @@ E plotamos:
 ggplot(p3, aes(x = Data, y = sp4.richness)) + 
   geom_line(size=6, alpha=0.6, color="Gray") + #geom_line(aes(group = sp4.sites))
   geom_point(aes(size=spAbund, colour=shannon), alpha=0.3) +
-    geom_label_repel(aes(label = sp4$richness), size=4, alpha=0.8, #funciona no zoom
+  geom_label(aes(label = sp4$richness), size=4, alpha=0.8, #funciona no zoom
                    box.padding   = 0.35, 
                    point.padding = 0.75,
                    segment.color = 'grey50') +
-  scale_size(range = c(.1, 24), name="Abundancia de registros") +
+  scale_size(range = c(.1, 24), name="Nº de registros") +
   #geom_text(aes(label = a$sp4.richness),col = 'black',size = 5) +
   labs(title="Curva do coletor", subtitle="Total", y="Riqueza",x="Data", caption="",
-       color = "Diversidade", size = "Abundancia de registros") +
+       color = "Diversidade de Shannon", size = "Nº de registros") +
   theme(axis.title = element_text(size = 18),
-        axis.text = element_text(size = 14)) + theme_classic() 
-#ggsave("Acum2.png",width = 14, height = 6, dpi = 300)
+        axis.text = element_text(size = 14)) + 
+        #scale_color_tq() + scale_fill_tq() +
+        theme_tq()         
+        
+#ggsave("2024_Acum2.pdf",width = 14, height = 6, dpi = 300) #, device = "png"
 ```
 
 ## 3. Estimativa de riqueza
@@ -213,14 +223,17 @@ Agora um gráfico unificado.
 ```
 p2 <- pbase
 
+#p2 <- subset(p2, Grupo == "Herpetofauna") 
+
 local<-reshape2::dcast(p2, Espécie ~ Grupo, value.var = "Abundancia", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
+#local <- local[-nrow(local), ]
 
 # Mude o q para 1 para comparar a diversidade de Shannon e para 2 para Simpson
 
 out <- iNEXT(local, q = 0,
              datatype = "abundance",
-             size = seq(0, 500, length.out=20))
+             size = seq(0, 1300, length.out=20))
 
 R <- ggiNEXT(out, type = 1) +
   theme_bw() +
@@ -228,14 +241,17 @@ R <- ggiNEXT(out, type = 1) +
   #xlab("Riqueza) + 
   #ylab("Tempo") +
   scale_shape_manual(values = 0:19) +
-  theme_classic() +
+  labs(title="Curva de acumulação por grupo", subtitle="", y="Riqueza",x="Abundâcia", caption="",
+       color = "Grupos", size = "") +
+  scale_color_tq() + scale_fill_tq() +
+        theme_tq()          +
   theme(axis.title = element_text(size = 18), 
         axis.text = element_text(size = 14), legend.position="bottom")
 
 R
 
 ggsave(width = 20, height = 10, 
-       device = "png", filename = "Acum3", plot = R)
+       device = "pdf", filename = "Acum2", plot = R)
        
 ```
 
@@ -250,7 +266,7 @@ Além de filtrar para apenas dados primários e espećies nativas.
 p2 <- pbase
 p2 <- subset(p2, Grupo == "Mastofauna")
 
-#p2 <- subset(p2, !is.na(Impacto))
+#p2 <- subset(p2, !is.na(Vegetação))
 
 ```
 Agora vamos filtrar a tabela, ela pode ser por:
@@ -288,13 +304,16 @@ ggplot(local, aes(x = reorder(Família, S), y = S)) +
   geom_col(aes(weight = S, fill = Ordem), alpha = 0.7) + 
   #geom_point(aes(y = S, x = Família, size = spAbund, colour = Ordem), alpha = 0.7) +
   geom_label(aes(y = S, x = Família, label = S), size=4, alpha= 1) +
-  labs(title="Riqueza e diversidade", subtitle="Diversidade", y="Riqueza", x="Família", caption="Dados primários",
-       fill = "Ordem", colour = "Ordem", size = "Riqueza") +
+  #facet_grid(Ordem~., scales = "free_y", space = "free_y") + 
+  labs(title="Riqueza e diversidade", subtitle="Diversidade", y="Riqueza", x="Família", caption="Dados primários", fill = "Ordem", colour = "Ordem", size = "Riqueza") +
   scale_size_binned(range = c(.1, 18)) +
   theme(axis.title = element_text(size = 18), 
         axis.text = element_text(size = 14)) + 
-        coord_flip() + theme_classic() 
-#ggsave("famma.png",width = 10, height = 8, dpi = 600)
+        coord_flip() + 
+        #scale_color_tq() + scale_fill_tq() +
+        theme_tq()         
+        
+#ggsave("2024fma.pdf",width = 10, height = 8, dpi = 600)
 ```
 Agora para abundância
 ```
@@ -307,39 +326,85 @@ ggplot(local, aes(x = reorder(Família, spAbund), y = spAbund)) +
   scale_size_binned(range = c(.1, 18)) +
   theme(axis.title = element_text(size = 18), 
         axis.text = element_text(size = 14)) + 
-        coord_flip() + theme_classic() 
-#ggsave("famma2.png",width = 10, height = 8, dpi = 600)
+        coord_flip() + 
+        #scale_color_tq() + scale_fill_tq() +
+        theme_tq()         
+        
+#ggsave("2024fma2.pdf",width = 10, height = 8, dpi = 600)
 
 
 ```
-
-
 
 Um gráfico para tipo de registro:
 ```
 p2 <- pbase
+p3 <- tidyr::separate_rows(p2, Registro, sep = "/")
 
-ggplot(p2, aes(x = Abundancia, y = Registro)) + 
-  geom_point(aes(size=Abundancia, colour = Grupo, shape = Grupo), alpha = 0.6)+ 
-  scale_size(range = c(.1, 18), name = "Abundância") +
-  facet_grid(Tipo~., scales = "free_y", space = "free_y") + 
-  labs(title="Tipo de registros", y="Tipo",x="Abundancia de registros", caption="",
-       color = "Grupo", size = "Abundancia de registros") +
+
+ggplot(p3, aes(x = Abundancia, y = Registro)) + 
+  geom_jitter(aes(size=Abundancia, colour = Tipo, shape = Tipo), alpha = 0.6)+ 
+  scale_size(range = c(3, 17), name = "Abundância") +
+  facet_grid(Grupo~., scales = "free_y", space = "free_y") + 
+  labs(title="Tipo de registros", y="Registros",x="Abundancia de registros", caption="",
+       color = "Tipo", size = "Abundancia de registros") +
+  scale_color_tq() + scale_fill_tq() +
+  theme_tq() +         
   theme(axis.title = element_text(size = 18),
-        axis.text = element_text(size = 14)) + theme_classic() 
-#ggsave("registr.png",width = 9, height = 7, dpi = 600)
+        axis.text = element_text(size = 14)) + 
+  guides(color = guide_legend(title = "Tipo"), 
+       size = guide_legend(title = "Abundância de registros"))
+        
+        
+#ggsave("registrn.pdf",width = 12, height = 8, dpi = 600)
+```
+
+outro gráfico para tipo de registro:
+```
+
+p4 <- subset(p3,Registro!="Busca Ativa") #excluir uma
+
+local<-reshape2::dcast(p4, Espécie + Grupo + Registro ~ Filo, value.var = "Abundancia", fun = sum)
+local=data.frame(local,row.names=1)
+
+ggplot(local, aes(x = Chordata, y = Espécie, colour = Grupo)) + 
+  geom_boxplot(alpha = 0.6)+ 
+  facet_wrap(~ Registro, scales = "free_y", ncol = 2) + 
+  labs(title="", y="Tipo",x="Abundancia de registros", caption="",
+       color = "Grupo") +
+  scale_color_tq() + scale_fill_tq() +
+  theme_tq() +         
+  theme(axis.title = element_text(size = 8),
+        axis.text = element_text(size = 8)) 
+
+#ggsave("registr2n.pdf",width = 13, height = 6, dpi = 600)
+
+```
+E vamos de números:
+```
+local<-reshape2::dcast(p2, Registro ~ Espécie, value.var = "Abundancia", fun = sum)
+local=data.frame(local,row.names=1)
+
+S <- specnumber(local) 
+spAbund <-rowSums(local) #abunância por faixa
+shannon <- diversity(local)
+J <- shannon/log(S) #Pielou
+simp <- diversity(local, "simpson")
+invsimp <- diversity(local, "inv")
+
 
 ```        
 Um outro gráfico baseado na Série de Hill ajudam a entender a relação de diferentes grupos nos índices de diversidade:
 
-- Impacto;
+- Vegetação;
 - IOS.
 ```        
 p2 <- pbase
 
-p3 <- subset(p2, !is.na(Impacto))
+p3 <- subset(p2, !is.na(O.Impacto))
+p4 <- p3$Vegetação <- tolower(p3$Vegetação)
+p3 <- data.frame(p3,p4)
 
-local<-reshape2::dcast(p3, Impacto ~ Espécie, value.var = "Abundancia", fun.aggregate = sum)
+local<-reshape2::dcast(p3, O.Impacto ~ Espécie, value.var = "Abundancia", fun.aggregate = sum)
 local=data.frame(local, row.names=1)
 
 R <- renyi(local,hill = TRUE)
@@ -355,49 +420,37 @@ R <- R %>%
   xlab("Parâmetro de ordem de diversidade (q)") +
   ylab("Diversidade") +
   labs(col = "Tipos") +
-  theme_classic() +
   theme(axis.title = element_text(size = 18), 
-        axis.text = element_text(size = 14), legend.position="bottom")
+        axis.text = element_text(size = 14), legend.position="bottom") +
+  scale_color_tq() + scale_fill_tq() +
+  theme_tq() 
 
 R  
 
-ggsave(, width = 20, height = 10, 
-       device = "png", filename = "imp", plot = R)
-```        
-
-Ou assim para Vegetação e uos:
-```
-local<-reshape2::dcast(p2, Vegetação ~ Espécie, value.var = "Abundancia", fun = sum)
-local<-data.frame(S, spAbund, shannon,J, local)
-
-ggplot(local, aes(Vegetação)) + 
-  geom_bar(aes(weight = S, fill = shannon), alpha = 0.7) + 
-  geom_point(aes(y = S, x = Vegetação, size = spAbund)) +
-  geom_label(aes(y = S, x = Vegetação, label = S), size=4, alpha= 1) +
-  #geom_label_repel(aes(y = S, x = Vegetação, label = spAbund), size=4, alpha= 1, colour = "red") +
-  labs(title="Riqueza e diversidade", subtitle="Diversidade", y="Riqueza", x="Uso e ocupação do solo", caption="Dados primários",
-       fill = "Diversidade", size = "Abundancia") +
-  scale_size_binned(range = c(.1, 18)) +
-  theme(axis.title = element_text(size = 18),
-        axis.text = element_text(size = 14)) + 
-        coord_flip() + theme_classic() 
-#ggsave("veg.png",width = 9, height = 7, dpi = 600)
-```
+ggsave(, width = 20, height = 10,device = "pdf", filename = "2024-imp2", plot = R)
 
 ```
-ggplot(local, aes(x = S, y = shannon)) + 
-  geom_point(aes(size=spAbund, colour = Família))+ 
-  scale_size(range = c(.1, 18), name = "Abundancia") +
-  geom_label_repel(aes(label = S), size=4, alpha= 0.7, #funciona no zoom
-                   box.padding   = 0.35, 
-                   point.padding = 0.75,
-                   segment.color = 'grey50') +
-  labs(title="Riqueza e diversidade", subtitle="Ordem", y="Diversidade",x="Riqueza", caption="",
-       color = "Empresas", size = "Abundancia de registros") +
-  theme(axis.title = element_text(size = 18),
-        axis.text = element_text(size = 14)) + theme_classic() 
-#ggsave("Famíliamast.png",width = 9, height = 7, dpi = 600)
+E uma estimativa tanto por Vegetação quanto pode vegetação.
 ```
+p2 <- pbase
+p3 <- subset(p2, !is.na(Vegetação))
+p4 <- p3$Vegetação <- tolower(p3$Vegetação)
+p3 <- data.frame(p3,p4)
+
+p3<-reshape2::dcast(p2, Data + Vegetação ~ Espécie, value.var = "Abundancia", fun = sum)
+excluir <- c("Data", "Vegetação")
+p3 <- p3[,!(names(p3)%in% excluir)]
+p4<-reshape2::dcast(Data, Data + Vegetação ~ Classe, value.var = "Abundancia", fun = sum)
+```
+Agora a estimativa de riqueza por localidade.
+```
+pool<-specpool(p3, p4$Vegetação) 
+pool
+boxplot(pool$chao) 
+```
+
+
+
 ## 5. Cluster
 Fazer um cladogroma de similaridade também pode nos ajudar a desenvolver nosso relatório. Vamos selecionar o que relacionar, podendo ser:
 - Vegetação;
@@ -405,7 +458,7 @@ Fazer um cladogroma de similaridade também pode nos ajudar a desenvolver nosso 
 - Epresa.
 ```
 pacman::p_load("ade4")
-local<-reshape2::dcast(planilhatotal, Vegetação ~ Espécie, value.var = "Abundancia", fun = sum)
+local<-reshape2::dcast(p2, Vegetação ~ Espécie, value.var = "Abundancia", fun = sum)
 local=data.frame(local, row.names=1)
 d <- dist.binary(local, method = 1, diag = FALSE, upper = FALSE) #method 1 is Jaccard index (1901) S3 coefficient of Gower & Legendre
 hc <- hclust(d)               # apply hierarchical clustering 
@@ -419,23 +472,28 @@ Primeiro os pacotes:
 pacman::p_load(ggfortify, cluster)
 
 p2 <- pbase
+p3 <- subset(p2, !is.na(Vegetação))
+p4 <- p3$Vegetação <- tolower(p3$Vegetação)
+p3 <- data.frame(p3,p4)
 
 #p2 <- subset(p2, Grupo == "Mastofauna")
 
-local<-reshape2::dcast(p2, Ordem ~ Vegetação, value.var = "Abundancia", fun.aggregate = NULL) #sum ou NULL
+local<-reshape2::dcast(p3, Família ~ Vegetação, value.var = "Abundancia", fun.aggregate = NULL) #sum ou NULL
 local=data.frame(local, row.names=1)
 
 pca_res <- prcomp(local, scale. = TRUE)
 #autoplot(pca_res)
 
-local<-reshape2::dcast(p2, Ordem + Grupo ~ Vegetação, value.var = "Abundancia", fun.aggregate = sum) #sum ou NULL
+local<-reshape2::dcast(p3, Família + Grupo ~ Vegetação, value.var = "Abundancia", fun.aggregate = NULL) #sum ou NULL
 pca <-autoplot(pca_res, data = local, colour = 'Grupo', label = TRUE, label.size = 4, 
          frame = TRUE, frame.type = NULL, frame.color = 'Grupo', #ou frame.type = 't'
          loadings = TRUE, loadings.colour = 'blue',loadings.label = TRUE, loadings.label.size = 3) +                
-         theme_classic() 
+         scale_color_tq() + scale_fill_tq() +
+         theme_tq() 
+  
 pca
 
-ggsave(width = 20, height = 10, device = "png", filename = "PCAriq", plot = pca)
+ggsave(width = 20, height = 10, device = "pdf", filename = "PCArq", plot = pca)
 #path = "/home/user/Área de Trabalho/Serviços/ES - Rio Bananal/2021_03_03_Grancol/R"
 
 ```
@@ -447,7 +505,7 @@ biplot(prcomp(local, scale = TRUE))
 
 ## 7. Correlação
 Por fim, vamoz fazer uma análise simmples de correlação usando o seguinte pacote.
-`pacman::p_load(psych)`
+
 Podemo relacionar:
 - Grupo;
 - Classe;
@@ -458,6 +516,7 @@ Podemo relacionar:
 
 Vamos selecionar:
 ```
+pacman::p_load(psych)
 local<-reshape2::dcast(p2, Espécie ~ Vegetação, value.var = "Abundancia", fun = sum)
 local=data.frame(local, row.names=1)
 ```
@@ -515,3 +574,217 @@ Agora um gráfico. Para entender os gráficos, pense na relação entre as diver
 ```
 plot(dp0) 
 ```
+## 9. Dados secundários
+
+Vamos observar a localidade analisada em relação a outras. Primeiro selecionar a tabela.
+
+Agora vamos filtrar a tabela. Primeiro tirar os dias não amostrados e espécie exótica.
+
+```
+p2 <- planilhatotal
+p2 <- subset(p2, !is.na(Ano))
+p2 <- subset(p2, Tag == "Rio Doce") 
+p2[is.na(p2)] <- 6
+ 
+#p2 <- subset(p2,Município!="São Mateus") #excluir uma
+#p2 <- subset(p2, Campanha == "3")
+```
+E ainda vamos atribuir as datas:
+```
+#p2 <- psec
+p3 <- p2 %>% 
+  select(Ano,Mês,Dia) %>% 
+  mutate(Data = make_date(Ano,Mês,Dia))
+Data <- data.frame(p3,p2)
+Data <- subset(Data, !is.na(Data))
+
+pbase <- Data
+p2 <- Data
+```
+Agora uma acumulação
+```
+acum<-reshape2::dcast(p2, Data + Dados ~ Espécie, value.var = "Abundancia", fun.aggregate = sum)
+acum=data.frame(acum, row.names=1)
+```
+E vamos gerar a curva:
+```
+acum<-reshape2::dcast(p2, Data ~ Espécie, value.var = "Abundancia", fun = sum)
+acum=data.frame(acum, row.names=1)
+
+sp4<-specaccum(acum,method="collector")
+shannon<-diversity(acum)
+spAbund<-rowSums(acum)
+```
+Agora preparamos a tabela:
+```
+acum<-reshape2::dcast(Data, Data + Dados ~ Espécie, value.var = "Abundancia", fun = sum)
+p3<-data.frame(shannon,spAbund,sp4$sites,sp4$richness,acum)
+
+ggplot(p3, aes(x = Data, y = sp4.richness, colour=Dados)) + 
+  geom_point(aes(size=spAbund), alpha=0.3) +
+  geom_line(size=6, alpha=0.6, color="Gray") + #geom_line(aes(group = sp4.sites))
+  geom_label(aes(label = sp4$richness), size=4, alpha=0.8, #funciona no zoom
+                   box.padding   = 0.35, 
+                   point.padding = 0.75,
+                   segment.color = 'grey50') +
+  scale_size(range = c(.1, 24), name="Nº de registros") +
+  labs(title="Curva do coletor", subtitle="Total", y="Riqueza",x="Data", caption="",
+       color = "Origem do dado", size = "Nº de registros") +
+  theme(axis.title = element_text(size = 18),
+        axis.text = element_text(size = 14)) + theme_classic() 
+#ggsave("2024Acumtn.pdf",width = 14, height = 6, dpi = 300) #, device = "png"
+
+```
+Agora um gráfico para ver os grupos
+```
+p2 <- pbase
+
+local<-reshape2::dcast(p2, Espécie ~ Grupo, value.var = "Abundancia", fun.aggregate = sum)
+local=data.frame(local, row.names=1)
+
+# Mude o q para 1 para comparar a diversidade de Shannon e para 2 para Simpson
+
+out <- iNEXT(local, q = 0,
+             datatype = "abundance",
+             size = seq(0, 6000, length.out=20))
+
+R <- ggiNEXT(out, type = 1) +
+  theme_bw() +
+  labs(fill = "Áreas") +
+  #xlab("Riqueza) + 
+  #ylab("Tempo") +
+  scale_shape_manual(values = 0:19) +
+  labs(title="Curva de acumulação por grupo", subtitle="", y="Riqueza",x="Abundâcia", caption="",
+       color = "Grupos", size = "") +
+  theme_classic() +
+  theme(axis.title = element_text(size = 18), 
+        axis.text = element_text(size = 14), legend.position="bottom")
+
+R
+
+#ggsave(width = 20, height = 10, 
+       device = "pdf", filename = "2024-Acumcltn", plot = R)
+       
+```
+Podemos ver a similaridade entre os municípios. 
+```
+
+pacman::p_load("ade4")
+local<-reshape2::dcast(p2, Macro ~ Espécie, value.var = "Abundancia", fun = sum)
+local=data.frame(local, row.names=1)
+d <- dist.binary(local, method = 1, diag = FALSE, upper = FALSE) #method 1 is Jaccard index (1901) S3 coefficient of Gower & Legendre
+hc <- hclust(d)               # apply hierarchical clustering 
+plot(hc, labels=local$ID)    # plot the dendrogram
+
+```
+Correlação
+
+```
+pacman::p_load(psych)
+
+p2 <- subset(p2,Município!="6") #excluir uma
+
+local<-reshape2::dcast(p2, Espécie ~ Município, value.var = "Abundancia", fun = NULL)
+local=data.frame(local, row.names=1)
+```
+E vamos plotar:
+```
+pdf("plot.pdf")
+
+ind <- sample(2, nrow(local),
+              replace = TRUE,
+              prob = c(0.8, 0.2))
+training <- local[ind==1,]
+testing <- local[ind==2,]
+pairs.panels(training,
+             gap = 0,
+             bg = c("red", "yellow", "blue"),
+             pch=21)
+
+dev.off()
+
+```
+Teste
+```
+pacman::p_load(treemapify) 
+pbase <- Data
+p2 <- Data
+
+local<-reshape2::dcast(p2, Localidade + Classe + Ordem ~ Filo) #sum ou NULL
+#local=data.frame(local, row.names=1)
+
+
+ggplot(local, aes(area = Chordata, fill = Classe, 
+  label = paste (Ordem, Chordata, sep = "\n"), subgroup = Localidade)) +
+  geom_treemap() +
+  geom_treemap_subgroup_text(place = "centre", grow = TRUE,
+                             alpha = 0.25, colour = "black",
+                             fontface = "italic") +
+  geom_treemap_text(colour = "white",
+                    place = "bottom",
+                    size = 10) +
+  theme_classic() +
+  theme(axis.title = element_text(size = 18), axis.text = element_text(size = 14), legend.position = "none") 
+  
+```
+OUTROS
+Teste
+
+MST (Minimum Spanning Tree): É uma técnica de análise de rede que encontra a árvore de menor custo que conecta todos os vértices de um grafo ponderado. Em biogeografia, a MST pode ser usada para identificar padrões de conectividade entre diferentes áreas geográficas com base em dados de distância ou similaridade.
+
+No gŕafico, as linhas representas as comunidades com menor cursto de coenxão e os pontos sem linhas as comunidades isoladas.
+```
+pacman::p_load("ggplot2", "spaa", "recluster", "analogue", "ape", "vegan")
+
+local<-reshape2::dcast(p2, Município ~ Espécie, value.var = "Abundancia",fun.aggregate = sum)
+local <- local[complete.cases(local), ]
+local=data.frame(local, row.names=1)
+
+dist_matrix <- vegdist(local, method = "jaccard")
+dist_matrix[is.na(dist_matrix)] <- 0  # Por exemplo, substituir NA por 0
+mst_tree <- mst(dist_matrix)
+nomes_localidades <- rownames(local)
+mst_coordinates <- cmdscale(dist_matrix)
+
+# Converter os nomes das linhas em números inteiros
+indices_nos <- seq_len(nrow(mst_coordinates))
+rownames(mst_coordinates) <- indices_nos
+
+# Criar uma matriz de coordenadas das arestas
+edges <- which(mst_tree != 0, arr.ind = TRUE)
+edges <- cbind(edges, Value = mst_tree[edges])
+
+# Converter para dataframe
+df_arestas <- as.data.frame(edges)
+colnames(df_arestas) <- c("X1", "X2", "Value")
+
+# Criar dataframe vazio para as linhas
+df_lines <- data.frame()
+
+# Iterar sobre as arestas e adicionar as coordenadas ao dataframe df_lines
+for (i in seq_len(nrow(df_arestas))) {
+  indice_X1 <- df_arestas$X1[i]
+  indice_X2 <- df_arestas$X2[i]
+  
+  # Obter as coordenadas dos nós
+  coord_X1 <- mst_coordinates[indice_X1, 1]
+  coord_Y1 <- mst_coordinates[indice_X1, 2]
+  coord_X2 <- mst_coordinates[indice_X2, 1]
+  coord_Y2 <- mst_coordinates[indice_X2, 2]
+  
+  # Adicionar as coordenadas ao dataframe df_lines
+  df_lines <- rbind(df_lines, data.frame(X1 = coord_X1, Y1 = coord_Y1, X2 = coord_X2, Y2 = coord_Y2))
+}
+
+# Convertendo as coordenadas da matriz mst_coordinates em dataframe
+df_mst_coordinates <- as.data.frame(mst_coordinates)
+colnames(df_mst_coordinates) <- c("X", "Y")
+
+# Plotar a MST com ggplot2
+ggplot() +
+  geom_segment(data = df_lines, aes(x = X1, y = Y1, xend = X2, yend = Y2), color = "blue") +
+  geom_point(data = df_mst_coordinates, aes(x = X, y = Y, colour = nomes_localidades), size = 5) +
+  geom_text_repel(data = df_mst_coordinates, aes(x = X, y = Y, label = nomes_localidades), vjust = -0.5) +
+  labs(title = "Minimum Spanning Tree", x = "Comunidade", y = "Comunidade") +
+  scale_color_tq() + scale_fill_tq() +
+  theme_tq() + theme(legend.position = "none")
