@@ -45,12 +45,24 @@ Ou pelo Google Drive
 ```
 pacman::p_load(googledrive, googlesheets4, readxl) 
 
-drive_auth()
-#drive_find(pattern = "2024_11_atividade_PCSA.xlsx")
+# 1. Acessar a pasta pelo ID
+pasta <- drive_get(as_id("1XnyBlZeX3O4K1-Y1LpTBFMrXLS0Whv-P"))
 
+# 2. Listar os arquivos na pasta
+arquivos_na_pasta <- drive_ls(pasta)
 
-arquivo <- drive_get("2024_11_atividade_PCSA.xlsx")
-drive_download(file = arquivo$id, path = "2024_11_atividade_PCSA.xlsx", type = "xlsx", overwrite = TRUE)
+# 3. Procurar o arquivo específico pelo nome
+arquivo <- arquivos_na_pasta[arquivos_na_pasta$name == "2024_11_atividade_PCSA.xlsx", ]
+
+# 4. Verificar se o arquivo foi encontrado e baixá-lo
+if (nrow(arquivo) == 1) {
+  drive_download(file = arquivo$id, path = "2024_11_atividade_PCSA.xlsx", type = "xlsx", overwrite = TRUE)
+  message("Arquivo baixado com sucesso!")
+} else if (nrow(arquivo) == 0) {
+  message("Arquivo não encontrado na pasta.")
+} else {
+  message("Mais de um arquivo com o mesmo nome foi encontrado. Verifique manualmente.")
+}
 
 library(readxl)
 planilhatotal <- read_excel("2024_11_atividade_PCSA.xlsx")
