@@ -1,15 +1,6 @@
 ## Apresentação
 Repositório para trelatório técnicos de estudo de fauna para uso pessoal. O intuito são análises de diversidade. Será dividido da seguinte forma:
 
-- 1. Início;
-- 2. Acumulação;
-- 3. Riqueza estimada;
-- 4. Diveridade;
-- 5. Cluster;
-- 6. PCA;
-- 7. Correlação;
-- 8. Dados secundários
-
 ## 1. Início
 Primeiro, vamos indicar as pastas corretas.
 - Prestar a atenção no diretório.
@@ -88,10 +79,7 @@ p2 <- subset(p2, !is.na(Ano))
 p2 <- subset(p2, !is.na(Horário))
 p2 <- subset(p2, !is.na(Grupo))
 
-
-#p2 <- subset(p2, Ano == "2024")
-#p2 <- subset(p2, Mês == "12") 
-
+p2 <- subset(p2,Contato!="Auditivo")
 #p2 <- tidyr::separate_rows(p2, Tipo de contato, sep = "/")
 
 ```
@@ -106,37 +94,348 @@ Data <- Data %>%
   mutate(across(where(is.numeric), ~ ifelse(. == 0, 20, .)))
 
 pbase <- Data
+
+prk <- subset(Data, Município == "Castelo/Vargem Alta")
+par <- subset(Data, Município == "Santa Teresa") 
+ptr <- subset(Data, TURISMO.CIENTIFICO == "Sim") 
+
 ```
 ## Demanda
 
 Um gráfico para tipo de registro:
 ```
+pacman::p_load(ggside, stringr) #, tidyverse,tidyquant)
+
 #p2 <- subset(Data, Projeto == "Infraestrutura")
 
 ggplot(Data, aes(x = Data, y = Grupo)) + 
-  geom_line(aes(colour = Município), alpha = 0.6)+ 
-  scale_size(range = c(3, 17), name = "Número de registros") +
-  #facet_grid(Projeto~., scales = "free_y", space = "free_y") + 
-  labs(title="Monitoramento", y="N° de indivíduos",x="Data", caption="",
-       color = "Município") +
-  theme_minimal() +         
-  theme(axis.title = element_text(size = 18),
-        axis.text = element_text(size = 14)) + 
-  guides(color = guide_legend(title = "Responsável"), 
-       size = guide_legend(title = "Minutos gastos"))
-       
-#ggsave("2024_12_atividade_IE_dia.pdf",width = 12, height = 8, dpi = 600)
+  geom_point(aes(colour = Município, shape = Contato), alpha = 0.6, size = 6) +  # Adiciona pontos com cor e tamanho
+  geom_smooth(method = loess, se = FALSE, aes(colour = Município), alpha = 0.6) +  
+  scale_size(range = c(2, 10), name = "Tamanho do grupo observado") +  # Define o intervalo de tamanho dos pontos
+  labs(
+    title = "Monitoramento", 
+    y = "N° de indivíduos observados", 
+    x = "Data", 
+    caption = "",
+    color = "Município", 
+    size = "Número de registros",
+    shape = "Tipo de contato") +
+  theme_minimal() +  # Aplica um tema minimalista
+  geom_xsidedensity(aes(y = after_stat(count), fill = Município), alpha = 0.5) +  # Densidade no eixo X
+  geom_ysidedensity(aes(x = after_stat(count), fill = Município), alpha = 0.5) +  # Densidade no eixo Y
+  theme(
+    axis.title = element_text(size = 18),  # Ajusta o tamanho do título dos eixos
+    axis.text = element_text(size = 14)    # Ajusta o tamanho do texto dos eixos
+  ) + 
+  guides(
+    color = guide_legend(title = "Município"),  # Corrige o título da legenda de cor
+    size = guide_legend(title = "Número de registros")  # Corrige o título da legenda de tamanho
+  )
+  
+  #ggsave("2024_12_atividade_IE_dia.pdf",width = 12, height = 8, dpi = 600)
+
+```
+Vamos ver por estação
+```
+library(dplyr)
+library(lubridate)  # Para facilitar o trabalho com datas
+
+# Adicionar a coluna "Estação" ao seu dataframe
+Data2 <- Data %>%
+  mutate(
+    Estação = case_when(
+      month(Data) %in% c(12, 1, 2) ~ "Verão",
+      month(Data) %in% c(3, 4, 5) ~ "Outono",
+      month(Data) %in% c(6, 7, 8) ~ "Inverno",
+      month(Data) %in% c(9, 10, 11) ~ "Primavera",
+      TRUE ~ NA_character_  # Caso haja datas fora do esperado
+    )
+  )
+
+library(ggplot2)
+library(ggside)
+
+# Plotar o gráfico
+ggplot(Data2, aes(x = Estação, y = Grupo)) + 
+  geom_boxplot(aes(fill = Município), alpha = 0.6) +  # Boxplots por estação, preenchidos por Município
+  geom_jitter(aes(colour = Município), alpha = 0.2, width = 0.2) +  # Adiciona pontos com jitter
+  labs(
+    title = "Monitoramento por Estação", 
+    y = "N° de indivíduos observados", 
+    x = "Estação", 
+    caption = "",
+    color = "Município", 
+    fill = "Município",  # Legenda para o preenchimento dos boxplots
+    shape = "Tipo de contato"
+  ) +
+  theme_minimal() +  # Aplica um tema minimalista
+  #geom_xsideboxplot(aes(y = Grupo, fill = Município), alpha = 0.5, orientation = "y") +  # Boxplot no eixo X
+  geom_ysideboxplot(aes(x = 1, fill = Município), alpha = 0.5, orientation = "x") +  # Boxplot no eixo Y
+  theme(
+    axis.title = element_text(size = 18),  # Ajusta o tamanho do título dos eixos
+    axis.text = element_text(size = 14)    # Ajusta o tamanho do texto dos eixos
+  ) + 
+  guides(
+    color = guide_legend(title = "Município"),  # Corrige o título da legenda de cor
+    fill = guide_legend(title = "Município")    # Corrige o título da legenda de preenchimento
+  )
+
+```
+Agora estações por ano
+```
+library(dplyr)
+library(lubridate)
+
+# Adicionar a coluna "Ano" e "Ano_Estação" ao seu dataframe
+Data2 <- Data2 %>%
+  mutate(
+    Ano = year(Data),  # Extrai o ano da coluna de datas
+    Ano_Estação = paste(Ano, Estação, sep = " - ")  # Combina ano e estação
+  )
+  
+library(ggplot2)
+library(ggside)
+
+# Plotar o gráfico
+ggplot(Data2, aes(x = Ano_Estação, y = Grupo)) + 
+  geom_boxplot(aes(fill = Município), alpha = 0.6) +  # Boxplots por Ano_Estação, preenchidos por Município
+  geom_jitter(aes(colour = Município), alpha = 0.2, width = 0.2) +  # Adiciona pontos com jitter
+  labs(
+    title = "Monitoramento por Estação e Ano", 
+    y = "N° de indivíduos observados", 
+    x = "Ano - Estação", 
+    caption = "",
+    color = "Município", 
+    fill = "Município",  # Legenda para o preenchimento dos boxplots
+    shape = "Tipo de contato"
+  ) +
+  theme_minimal() +  # Aplica um tema minimalista
+  geom_ysideboxplot(aes(x = 1, fill = Município), alpha = 0.5, orientation = "x") +  # Boxplot no eixo Y lateral
+  theme(
+    axis.title = element_text(size = 18),  # Ajusta o tamanho do título dos eixos
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),  # Rotaciona e ajusta o texto do eixo X
+    axis.text.y = element_text(size = 14)    # Ajusta o tamanho do texto do eixo Y
+  ) + 
+  guides(
+    color = guide_legend(title = "Município"),  # Corrige o título da legenda de cor
+    fill = guide_legend(title = "Município")    # Corrige o título da legenda de preenchimento
+  )
+
+
+
 ```
 teste de normalidade
+```
 
-pacman::p_load(fitdistrplus)
+pacman::p_load(fitdistrplus, dunn.test, agricolae)
 
-fit.MF.normal <- fitdist(p2$Grupo, "norm") #gráfico de distribuição normal
+fit.MF.normal <- fitdist(Data$Grupo, "norm") #gráfico de distribuição normal
 plot(fit.MF.normal)
 
-ggplot(p2, aes(sample=Grupo, colour = Município)) +
-     stat_qq() + 
-     theme_bw()
-     
-shapiro.test(p2$Grupo)
+ggplot(Data, aes(sample = Grupo, colour = Município)) +
+  stat_qq() +
+  stat_qq_line(colour = "black", linetype = "dashed") +
+  facet_wrap(~ Município) +  # Separa os gráficos por município
+  theme_minimal()
 
+```
+Ambos os gráficos atestam a não normalidade
+```
+     
+shapiro.test(prk$Grupo)
+shapiro.test(par$Grupo)
+
+```
+Com os testes, os dados são estatisticamente comprovados como não normal
+```
+
+kruskal.test(Município~Grupo, data = Data)       
+
+```
+Esse teste compara se os dados apresentam a mesma distribuição.
+Mas o teste de Duun faz os dois e confirma
+```
+dunn <- dunn.test(Data$Grupo, Data$Município, method = "bonferroni")
+print(dunn)
+```
+Os municípios Castelo/Vargem Alta e Santa Teresa não apresentam 
+diferenças estatisticamente significativas na variável x. 
+Isso significa que, com base nos dados, 
+não há evidências de que esses grupos tenham distribuições diferentes.
+Mesmo usando o Bonferroni.
+```
+
+
+g1 <- Data %>% 
+  mutate(Município = as.factor(Município)) %>% 
+  ggplot() +
+  geom_boxplot(aes(y = Grupo, x = Município)) +
+  labs(x = 'Municípios', y = 'Nº de registros', 
+       title = '') + theme_minimal()
+       
+g1 
+
+```
+Agora uma previsão para o número de regsitros de cada áreas
+```
+# Carregar pacotes necessários
+pacman::p_load(forecast, ggplot2, gridExtra)
+
+# Verificar se o vetor de Grupo tem pelo menos uma observação para prk
+if(length(prk$Grupo) > 0) {
+  # Transformar o vetor em uma série temporal (ajuste o valor da frequência conforme necessário)
+  prk_ts <- ts(prk$Grupo, frequency = 1)  # Frequência diária (1 por dia)
+  
+  # Criar o modelo ARIMA para 'prk'
+  modelo_arima_prk <- auto.arima(prk_ts)
+  
+  # Gerar previsões para 'prk' para os próximos 10 períodos
+  previsao_prk <- forecast(modelo_arima_prk, h = 10)
+  
+  # Calcular o último período de prk
+  ultimo_periodo_prk <- length(prk$Grupo)
+  
+  # Criar o dataframe com a previsão para prk
+  df_prk <- data.frame(
+    Municipio = "Castelo/Vargem Alta",
+    Periodo = (ultimo_periodo_prk + 1):(ultimo_periodo_prk + 10),  # Ajusta para o período correto
+    Previsao = previsao_prk$mean,
+    Lo_80 = previsao_prk$lower[,1],
+    Hi_80 = previsao_prk$upper[,1],
+    Lo_95 = previsao_prk$lower[,2],
+    Hi_95 = previsao_prk$upper[,2]
+  )
+}
+
+# Verificar se o vetor de Grupo tem pelo menos uma observação para par
+if(length(par$Grupo) > 0) {
+  # Transformar o vetor em uma série temporal (ajuste a frequência conforme necessário)
+  par_ts <- ts(par$Grupo, frequency = 1)  # Frequência diária (1 por dia)
+  
+  # Criar o modelo ARIMA para 'par'
+  modelo_arima_par <- auto.arima(par_ts)
+  
+  # Gerar previsões para 'par' para os próximos 10 períodos
+  previsao_par <- forecast(modelo_arima_par, h = 10)
+  
+  # Calcular o último período de par
+  ultimo_periodo_par <- length(par$Grupo)
+  
+  # Criar o dataframe com a previsão para par
+  df_par <- data.frame(
+    Municipio = "Santa Teresa",
+    Periodo = (ultimo_periodo_par + 1):(ultimo_periodo_par + 10),  # Ajusta para o período correto
+    Previsao = previsao_par$mean,
+    Lo_80 = previsao_par$lower[,1],
+    Hi_80 = previsao_par$upper[,1],
+    Lo_95 = previsao_par$lower[,2],
+    Hi_95 = previsao_par$upper[,2]
+  )
+}
+
+# Criar gráficos para prk e par
+
+grafico_prk <- ggplot(df_prk, aes(x = Periodo, group = Municipio)) +
+  geom_line(aes(y = Previsao, color = Municipio), size = 1) +  # Linha de previsão
+  geom_ribbon(aes(ymin = Lo_80, ymax = Hi_80, fill = Municipio), alpha = 0.2) +  # Intervalo de 80%
+  geom_ribbon(aes(ymin = Lo_95, ymax = Hi_95, fill = Municipio), alpha = 0.1) +  # Intervalo de 95%
+  labs(title = "Previsões para Castelo/Vargem Alta",
+       x = "Período",
+       y = "Número de Indivíduos Observados") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "bottom",  # Coloca a legenda abaixo do gráfico
+        legend.box = "horizontal")
+
+grafico_par <- ggplot(df_par, aes(x = Periodo, group = Municipio)) +
+  geom_line(aes(y = Previsao, color = Municipio), size = 1) +  # Linha de previsão
+  geom_ribbon(aes(ymin = Lo_80, ymax = Hi_80, fill = Municipio), alpha = 0.2) +  # Intervalo de 80%
+  geom_ribbon(aes(ymin = Lo_95, ymax = Hi_95, fill = Municipio), alpha = 0.1) +  # Intervalo de 95%
+  labs(title = "Previsões para Santa Teresa",
+       x = "Período",
+       y = "Número de Indivíduos Observados") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "bottom",  # Coloca a legenda abaixo do gráfico
+        legend.box = "horizontal")
+
+# Unir os gráficos com grid.arrange em uma coluna (um sobre o outro)
+grid.arrange(grafico_prk, grafico_par, ncol = 1)  # ncol = 1 para exibir os gráficos um sobre o outro
+
+```
+vamos pensar agora na contribuição do turismo científico
+
+```
+
+pacman::p_load(ggside, stringr)
+
+library(ggplot2)
+library(ggside)
+
+# Criar a variável "Ano_Estação" (se ainda não existir)
+Data <- Data %>%
+  mutate(
+    Ano = year(Data),  # Extrai o ano da coluna de datas
+    Estação = case_when(
+      month(Data) %in% c(12, 1, 2) ~ "Verão",
+      month(Data) %in% c(3, 4, 5) ~ "Outono",
+      month(Data) %in% c(6, 7, 8) ~ "Inverno",
+      month(Data) %in% c(9, 10, 11) ~ "Primavera",
+      TRUE ~ NA_character_
+    ),
+    Ano_Estação = paste(Ano, Estação, sep = " - ")  # Combina ano e estação
+  )
+
+# Plotar o gráfico
+ggplot(Data, aes(x = Ano_Estação, y = Grupo)) + 
+  geom_boxplot(aes(fill = TURISMO.CIENTIFICO), alpha = 0.6) +  # Boxplots por Ano_Estação, preenchidos por Turismo Científico
+  geom_jitter(aes(colour = TURISMO.CIENTIFICO, shape = Contato), alpha = 0.2, width = 0.2) +  # Adiciona pontos com jitter
+  labs(
+    title = "Monitoramento por Estação e Ano", 
+    y = "N° de indivíduos observados", 
+    x = "Ano - Estação", 
+    caption = "",
+    color = "Turismo Científico",  # Título da legenda de cor
+    fill = "Turismo Científico",   # Título da legenda de preenchimento
+    shape = "Tipo de contato"
+  ) +
+  theme_minimal() +  # Aplica um tema minimalista
+  geom_ysideboxplot(aes(x = 1, fill = TURISMO.CIENTIFICO), alpha = 0.5, orientation = "x") +  # Boxplot no eixo Y lateral
+  #geom_xsidedensity(aes(y = after_stat(density), fill = TURISMO.CIENTIFICO), alpha = 0.5) +  # Densidade no eixo X
+  #geom_ysidedensity(aes(x = after_stat(density), fill = TURISMO.CIENTIFICO), alpha = 0.5) +  # Densidade no eixo Y
+  theme(
+    axis.title = element_text(size = 18),  # Ajusta o tamanho do título dos eixos
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),  # Rotaciona e ajusta o texto do eixo X
+    axis.text.y = element_text(size = 14)    # Ajusta o tamanho do texto do eixo Y
+  ) + 
+  guides(
+    color = guide_legend(title = "Turismo Científico"),  # Corrige o título da legenda de cor
+    fill = guide_legend(title = "Turismo Científico"),  # Corrige o título da legenda de preenchimento
+    shape = guide_legend(title = "Tipo de contato")     # Corrige o título da legenda de forma
+  )
+```
+Em um gráfico de pizza
+
+```
+pacman::p_load(ggplot2, dplyr)
+
+# Substituir NA por "Monitoramento" na coluna TURISMO.CIENTIFICO
+df_pizza <- Data %>%
+  mutate(TURISMO.CIENTIFICO = ifelse(is.na(TURISMO.CIENTIFICO), "Monitoramento", TURISMO.CIENTIFICO)) %>%
+  count(TURISMO.CIENTIFICO) %>%
+  mutate(percentage = n / sum(n) * 100)  # Calculando a porcentagem de cada categoria
+
+# Criar o gráfico de pizza com porcentagem
+ggplot(df_pizza, aes(x = "", y = percentage, fill = TURISMO.CIENTIFICO)) + 
+  geom_bar(stat = "identity", width = 1, color = "white") +  # Barra de pizza
+  coord_polar(theta = "y") +  # Convertendo a barra para o formato circular
+  labs(title = "Distribuição do Turismo Científico") +
+  theme_void() +  # Remove elementos desnecessários
+  theme(
+    axis.text.x = element_blank(),  # Remove os rótulos do eixo X
+    legend.title = element_blank()  # Remove o título da legenda
+  ) +
+  scale_fill_manual(values = c("blue", "orange", "green")) +  # Personalize as cores para as categorias
+  geom_text(aes(label = paste0(round(percentage, 1), "%")),  # Adiciona as porcentagens
+            position = position_stack(vjust = 0.5),  # Posiciona o texto no meio da fatia
+            color = "white", size = 6)  # Define a cor e o tamanho do texto
