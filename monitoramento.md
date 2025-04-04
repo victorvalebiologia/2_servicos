@@ -10,14 +10,19 @@ setwd("/home/kaetes/Documentos/Gráficos/PSCA")
 ```
 Agora os principais pacotes utilizados:
 ```
-if(!require(pacman, quietly = TRUE))(install.packages("pacman")) #agrupador de funções
-#if(!require(devtools, quietly = TRUE))(install.packages("devtools")) #agrupador de dados
-pacman::p_load(magrittr,dplyr,reshape2) #magrittr para operações de pipe/dplyr para manipulador de dados
-pacman::p_load(ggplot2, ggrepel, graphics, lubridate, stringr) 
-pacman::p_load(vegan)  #vegan para estatística ecológica/graphics para os gráficos
-pacman::p_load(forcats,iNEXT,tidyr,tibble,iNEXT, hms) #hill,CRAN e riqueza estimada
-#pacman::p_load(tidyverse)
-#update.packages(ask = FALSE, checkBuilt = TRUE)
+# Verifica se o pacote pacman está instalado; se não, instala
+if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman")
+
+pacman::p_load(
+  magrittr, dplyr, reshape2,   # Manipulação de dados
+  ggplot2, ggrepel, graphics,  # Visualização de dados
+  lubridate, stringr,          # Manipulação de datas e strings
+  vegan,                       # Estatística ecológica
+  forcats, iNEXT, tidyr, tibble, hms # Análises ecológicas e manipulação de dados
+)
+
+# Atualiza pacotes sem pedir confirmação (com checkBuilt = TRUE para evitar incompatibilidades)
+# update.packages(ask = FALSE, checkBuilt = TRUE)
 
 
 ```
@@ -76,7 +81,7 @@ Agora vamos filtrar a tabela. Primeiro tirar os dias não amostrados e espécie 
 p1 <- subset(planilhatotal, !is.na(Dia))
 p2 <- subset(p1, !is.na(Mês))
 p2 <- subset(p2, !is.na(Ano))
-p2 <- subset(p2, !is.na(Horário))
+#p2 <- subset(p2, !is.na(Horário))
 p2 <- subset(p2, !is.na(Grupo))
 
 p2 <- subset(p2,Contato!="Auditivo")
@@ -199,7 +204,7 @@ library(ggside)
 # Plotar o gráfico
 ggplot(Data2, aes(x = Ano_Estação, y = Grupo)) + 
   geom_boxplot(aes(fill = Município), alpha = 0.6) +  # Boxplots por Ano_Estação, preenchidos por Município
-  geom_jitter(aes(colour = Município), alpha = 0.2, width = 0.2) +  # Adiciona pontos com jitter
+  geom_jitter(aes(colour = Município), alpha = 0.3, width = 0.2) +  # Adiciona pontos com jitter
   labs(
     title = "Monitoramento por Estação e Ano", 
     y = "N° de indivíduos observados", 
@@ -221,8 +226,66 @@ ggplot(Data2, aes(x = Ano_Estação, y = Grupo)) +
     fill = guide_legend(title = "Município")    # Corrige o título da legenda de preenchimento
   )
 
+```
+Agora horário
+```
+# Carregando pacotes necessários
+pacman::p_load(ggplot2, dplyr)
 
+install.packages("lubridate")  # Instale o pacote se necessário
+library(lubridate)
 
+Data <- subset(Data, !is.na(Horário))
+Data$Horário <- as.numeric(Data$Horário)
+
+# Verificar se há NAs resultantes da conversão
+sum(is.na(Data$Horário)) 
+
+# Função para converter decimal para HH:MM:SS
+decimal_para_hora <- function(decimal) {
+  horas <- floor(decimal * 24)
+  minutos <- floor((decimal * 24 - horas) * 60)
+  segundos <- round((((decimal * 24 - horas) * 60) - minutos) * 60)
+  sprintf("%02d:%02d:%02d", horas, minutos, segundos)
+}
+
+# Aplicar a função à coluna Horário
+Data$Horario_convertido <- sapply(Data$Horário, decimal_para_hora)
+
+# Extrair apenas a hora (HH) da coluna Horario_convertido
+Data$Hora <- format(as.POSIXct(Data$Horario_convertido, format = "%H:%M:%S"), "%H")
+
+# Contar a frequência de registros por hora e município
+horario_counts <- Data %>%
+  group_by(Município, Hora) %>%
+  summarise(n = n(), .groups = 'drop')
+
+# Criar o gráfico de relógio com facet_grid por Município
+ggplot(horario_counts, aes(x = Hora, y = n, fill = n)) +
+  geom_bar(stat = "identity", width = 1, color = "white") +  # Barras com contorno branco
+  coord_polar(start = 0) +  # Coordenadas polares para criar o efeito de relógio
+  scale_x_discrete(limits = sprintf("%02d", 0:23)) +  # Definir as 24 horas no eixo x
+  labs(
+    title = "Distribuição de Registros por Hora e Município",
+    x = "Hora do Dia",
+    y = "Número de Registros",
+    fill = "Registros"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_blank(),  # Remover texto do eixo y
+    axis.title.y = element_blank(),  # Remover título do eixo y
+    panel.grid.major.y = element_blank(),  # Remover linhas de grade principais do eixo y
+    panel.grid.minor.y = element_blank(),  # Remover linhas de grade secundárias do eixo y
+    axis.text.x = element_text(size = 10, color = "black"),  # Ajustar texto do eixo x
+    strip.text = element_text(size = 12, face = "bold")  # Ajustar texto dos facets
+  ) +
+  geom_text(
+    aes(label = ifelse(n > 0, n, "")),  # Adicionar rótulos com o número de registros
+    position = position_stack(vjust = 0.5),
+    size = 3, color = "black"
+  ) +
+  facet_grid(~ Município)  # Criar um gráfico separado para cada município
 ```
 teste de normalidade
 ```
