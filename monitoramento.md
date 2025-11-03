@@ -79,9 +79,14 @@ if (nrow(arquivo) == 1) {
 Agora vamos filtrar a tabela. Primeiro tirar os dias não amostrados e espécie exótica.
 ```
 p1 <- subset(planilhatotal, !is.na(Dia))
+p1 <- p1[, 1:which(names(p2) == "Nome.popular")]
+
 p2 <- subset(p1, !is.na(Mês))
 p2 <- subset(p2, !is.na(Ano))
-#p2 <- subset(p2, !is.na(Horário))
+p2 <- subset(p2, !is.na(Contato))
+
+p2 <- tidyr::separate_rows(p2, Contato, sep = "/")
+
 p2 <- subset(p2, !is.na(Grupo))
 
 p2 <- subset(p2,Contato!="Auditivo")
